@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch --env-file-if-exists=.env src/server.js",
-    "test": "node --test",
+    "test": "node --env-file-if-exists=.env --test",
     "migrate": "node --env-file-if-exists=.env db/migrate.js"
   },
   "type": "module",
