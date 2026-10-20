@@ -112,3 +112,30 @@ test("POST /events ger 400 när max antal platser är 0", async () => {
     .send({ ...validEvent, max_participants: 0 });
   assert.equal(res.status, 400);
 });
+
+test("PUT /events/:id uppdaterar ett evenemang", async () => {
+  const id = await createEvent("Pub", "2099-04-01T18:00:00Z");
+
+  const res = await request(testApp)
+    .put(`/events/${id}`)
+    .send({ ...validEvent, title: "Pub med quiz" });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.title, "Pub med quiz");
+  assert.equal(res.body.registered_count, 0);
+});
+
+test("PUT /events/:id ger 400 med ogiltig data", async () => {
+  const id = await createEvent("Pub", "2099-04-01T18:00:00Z");
+
+  const res = await request(testApp)
+    .put(`/events/${id}`)
+    .send({ ...validEvent, location: "" });
+
+  assert.equal(res.status, 400);
+});
+
+test("PUT /events/:id ger 404 för ett id som inte finns", async () => {
+  const res = await request(testApp).put("/events/999999").send(validEvent);
+  assert.equal(res.status, 404);
+});

@@ -8,8 +8,19 @@ const SELECT_EVENT = `
     FROM events
     LEFT JOIN registrations ON registrations.event_id = events.id`;
 
+async function findEventById(id) {
+  const { rows } = await pool.query(
+    `${SELECT_EVENT}
+            WHERE events.id = $1
+            GROUP BY events.id`,
+    [id],
+  );
+  return rows[0];
+}
+
 function validateEvent(body) {
-  const { title, description, starts_at, location, max_participants } = body;
+  const { title, description, starts_at, location, max_participants } =
+    body ?? {};
   const errors = [];
   if (typeof title !== "string" || title.trim() === "") {
     errors.push("Titel krävs");
@@ -47,16 +58,12 @@ router.get("/:id", async (req, res) => {
   if (!Number.isInteger(id)) {
     return res.status(404).json({ error: "Evenemanget hittades inte" });
   }
-  const { rows } = await pool.query(
-    `${SELECT_EVENT}
-            WHERE events.id = $1
-            GROUP BY events.id`,
-    [id],
-  );
-  if (rows.length === 0) {
+
+  const event = await findEventById(id);
+  if (!event) {
     return res.status(404).json({ error: "Evenemanget hittades inte" });
   }
-  res.json(rows[0]);
+  res.json(event);
 });
 
 router.post("/", async (req, res) => {
@@ -81,5 +88,35 @@ router.post("/", async (req, res) => {
     ],
   );
   res.status(201).json({ ...rows[0], registered_count: 0 });
+});
+
+router.put("/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(404).json({ error: "Evenemanget hittades inte" });
+  }
+  const errors = validateEvent(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: errors.join(", ") });
+  }
+  const { title, description, starts_at, location, max_participants } =
+    req.body;
+  const { rowCount } = await pool.query(
+    `UPDATE events
+    SET title = $1, description = $2, starts_at = $3, location = $4, max_participants = $5
+    WHERE id = $6`,
+    [
+      title.trim(),
+      description?.trim() || null,
+      starts_at,
+      location.trim(),
+      max_participants ?? null,
+      id,
+    ],
+  );
+  if (rowCount === 0) {
+    return res.status(404).json({ error: "Evenemanget hittades inte" });
+  }
+  res.json(await findEventById(id));
 });
 export default router;
