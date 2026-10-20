@@ -3,9 +3,11 @@ name: Backend CI/CD
 on:
   push:
     branches: [main]
-    paths: ["backend/**", ".github/workflows/backend.yml"]
+    paths:
+      ["backend/**", ".github/workflows/backend.yml", "docker-compose.prod.yml"]
   pull_request:
-    paths: ["backend/**", ".github/workflows/backend.yml"]
+    paths:
+      ["backend/**", ".github/workflows/backend.yml", "docker-compose.prod.yml"]
 
 jobs:
   test:
@@ -53,13 +55,26 @@ jobs:
     needs: docker
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
     steps:
-      - name: Trigga deploy på Render
-        env:
-          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+      - uses: actions/checkout@v4
+
+      - name: Konfigurera SSH
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
-            echo "RENDER_DEPLOY_HOOK saknas – hoppar över deploy"
-            exit 0
-          fi
-          curl -fsS -X POST "$RENDER_DEPLOY_HOOK"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Kopiera filer till servern
+        run: |
+          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
+            --exclude node_modules --exclude .env \
+            backend docker-compose.prod.yml 
+            "ubuntu@$EC2_HOST:~/karappen/"
+
+      - name: Starta om på servern
+        run: |
+          ssh -i ~/.ssh/deploy_key "ubuntu@$EC2_HOST" \
+            "cd ~/karappen && docker compose -f docker-compose.prod.yml up -d --build && docker image prune -f"
