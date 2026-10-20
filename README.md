@@ -118,9 +118,10 @@ Utloggning sker i appen genom att JWT:n tas bort från SecureStore.
 | Backend     | Node.js och Express, JWT (`jsonwebtoken`), `bcryptjs`                                                          |
 | Databas     | PostgreSQL (`pg`)                                                                                              |
 | Tester      | `node:test` och `supertest` mot en riktig Postgres i CI                                                        |
-| CI/CD       | GitHub Actions: tester → Docker-build → deploy vid push till `main`                                            |
-| Hosting     | Backend som Docker-container på **Render** (publik HTTPS), databas på **Neon** (hanterad Postgres, gratisnivå) |
-| Hemligheter | `DATABASE_URL` och `JWT_SECRET` som miljövariabler på Render, aldrig i appen eller Git                         |
+| CI/CD       | GitHub Actions: tester → Docker-build → deploy till EC2 via SSH vid push till `main`                           |
+| Hosting     | **AWS EC2** (Ubuntu) med Docker Compose: backend-container och Postgres-container med data i en Docker-volym   |
+| HTTPS       | Läggs till framför backend (reverse proxy med certifikat) innan redovisningen                                  |
+| Hemligheter | `POSTGRES_PASSWORD` och `JWT_SECRET` i en `.env`-fil på servern, aldrig i appen eller Git                      |
 
 ### Arbetsfördelning
 
@@ -129,7 +130,7 @@ Båda jobbar med både app och backend. Vi delar upp per **funktion genom hela k
 |         | Person A: _Andrea_                                                                     | Person B: _Alice_                                          |
 | ------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | Vecka 1 | Auth i backend (register/login, JWT, bcrypt) och inloggnings- och registreringsskärmar | Evenemang-CRUD i backend och lista/detalj/formulär i appen |
-|         | Deploy: Render, Neon och deploy-hook i GitHub Actions                                  | Roller och behörighetsmiddleware (admin/medlem)            |
+|         | Deploy: EC2, Docker Compose och deploy via SSH i GitHub Actions                        | Roller och behörighetsmiddleware (admin/medlem)            |
 | Vecka 2 | Profil (API och skärm) och tester för profil/auth                                      | Anmälan (API och skärmar) och tester för evenemang/anmälan |
 |         | Extrafunktion (om tid finns)                                                           | README och förberedelse av redovisning                     |
 
@@ -166,12 +167,39 @@ npx expo start            # öppna i Expo Go eller emulator
 
 Sätt backend-adressen i `app/.env` som `EXPO_PUBLIC_API_URL=...` (den deployade adressen vid redovisning). Lägg aldrig hemligheter i appen.
 
+## Deployment
+
+Backend körs på en AWS EC2-instans (Ubuntu) med en Elastic IP: **http://51.21.6.174** (hälsokontroll: [/health](http://51.21.6.174/health)). HTTPS läggs till innan redovisningen.
+
+```
+push till main → GitHub Actions: test → docker build → deploy
+                                                        │ rsync + ssh
+                                                        ▼
+                                   EC2: docker compose -f docker-compose.prod.yml up -d --build
+                                        ├── backend  (port 80 → 3000)
+                                        └── db       (Postgres, data i volymen db-data)
+```
+
+- `deploy`-jobbet kopierar `backend/` och `docker-compose.prod.yml` till `~/karappen` på servern och startar om containrarna. Databasschemat körs vid varje start (`db/migrate.js`).
+- Postgres-data ligger i Docker-volymen `db-data`, så den finns kvar efter omstart och ny deploy.
+- Hemligheterna ligger i `~/karappen/.env` på servern (`POSTGRES_PASSWORD`, `JWT_SECRET`) och finns aldrig i Git.
+- GitHub-hemligheter: `EC2_HOST` (serverns IP) och `EC2_SSH_KEY` (privat nyckel som bara används av GitHub Actions).
+
+Felsökning på servern:
+
+```bash
+cd ~/karappen
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs backend
+```
+
 ## Struktur
 
 ```
 karappen/
 ├── app/                 # Expo-appen (Expo Router)
 ├── backend/             # Express-API, Dockerfile, schema och tester
-├── docker-compose.yml   # Lokal Postgres och backend
-└── .github/workflows/   # CI/CD
+├── docker-compose.yml        # Lokal Postgres och backend
+├── docker-compose.prod.yml   # Produktion på EC2
+└── .github/workflows/        # CI/CD
 ```
