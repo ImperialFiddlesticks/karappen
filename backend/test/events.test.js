@@ -73,3 +73,42 @@ test("GET /events/:id ger 404 för ett id som inte är ett tal", async () => {
   const res = await request(testApp).get("/events/abc");
   assert.equal(res.status, 404);
 });
+
+const validEvent = {
+  title: "Sittning",
+  starts_at: "2099-03-01T18:00:00Z",
+  location: "Skolan",
+  max_participants: 60,
+};
+
+test("POST /events skapar ett nytt evenemang med giltiga data", async () => {
+  const res = await request(testApp).post("/events").send(validEvent);
+
+  assert.equal(res.status, 201);
+  assert.equal(res.body.title, "Sittning");
+  assert.equal(res.body.created_by, adminId);
+
+  const getRes = await request(testApp).get(`/events/${res.body.id}`);
+  assert.equal(getRes.status, 200);
+});
+
+test("POST /events ger 400 utan titel", async () => {
+  const res = await request(testApp)
+    .post("/events")
+    .send({ ...validEvent, title: "" });
+  assert.equal(res.status, 400);
+});
+
+test("POST /events ger 400 med ogiltigt datum", async () => {
+  const res = await request(testApp)
+    .post("/events")
+    .send({ ...validEvent, starts_at: "inte-en-datum" });
+  assert.equal(res.status, 400);
+});
+
+test("POST /events ger 400 när max antal platser är 0", async () => {
+  const res = await request(testApp)
+    .post("/events")
+    .send({ ...validEvent, max_participants: 0 });
+  assert.equal(res.status, 400);
+});
