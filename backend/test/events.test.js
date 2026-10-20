@@ -139,3 +139,28 @@ test("PUT /events/:id ger 404 för ett id som inte finns", async () => {
   const res = await request(testApp).put("/events/999999").send(validEvent);
   assert.equal(res.status, 404);
 });
+
+test("DELETE /events/:id tar bort evenemanget och dess anmälningar", async () => {
+  const id = await createEvent("Pub", "2099-05-01T18:00:00Z");
+  await pool.query(
+    "INSERT INTO registrations (user_id, event_id) VALUES ($1, $2)",
+    [adminId, id],
+  );
+
+  const res = await request(testApp).delete(`/events/${id}`);
+  assert.equal(res.status, 204);
+
+  const getRes = await request(testApp).get(`/events/${id}`);
+  assert.equal(getRes.status, 404);
+
+  const { rows } = await pool.query(
+    "SELECT * FROM registrations WHERE event_id =$1",
+    [id],
+  );
+  assert.equal(rows.length, 0);
+});
+
+test("DELETE /events/:id ger 404 för ett id som inte finns", async () => {
+  const res = await request(testApp).delete("/events/999999");
+  assert.equal(res.status, 404);
+});
