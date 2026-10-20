@@ -19,18 +19,18 @@ Byggd i React Native med Expo, med egen Express-backend och PostgreSQL-databas.
 
 **Version 1 (bygger nu)**
 
-| | Funktion | Beskrivning |
-|---|---|---|
-| Huvudfunktion | **Evenemang** | Lista, detaljsida och formulär. Admin har full CRUD, medlemmar läser. |
-| Mindre funktion 1 | **Anmälan** | Anmäl/avanmäl till evenemang, max antal platser, "Mina anmälningar". |
+|                   | Funktion          | Beskrivning                                                           |
+| ----------------- | ----------------- | --------------------------------------------------------------------- |
+| Huvudfunktion     | **Evenemang**     | Lista, detaljsida och formulär. Admin har full CRUD, medlemmar läser. |
+| Mindre funktion 1 | **Anmälan**       | Anmäl/avanmäl till evenemang, max antal platser, "Mina anmälningar".  |
 | Mindre funktion 2 | **Medlemsprofil** | Namn, program, årskurs och specialkost. Medlemmen redigerar sin egen. |
 
 Två roller via ett `role`-fält på användaren: `member` (standard) och `admin`.
 
 **Får vänta**
 
-- **Extrafunktion för VG (väljs när grunden fungerar):** nyhetsflöde/anslag från kåren. Det är nästan samma CRUD som evenemang. *Ska stämmas av med läraren.*
-- Alternativ om vi hinner: rabatter/medlemsförmåner eller QR-kod för incheckning.
+- **Extrafunktion för VG (väljs när grunden fungerar):** nyhetsflöde/anslag från kåren. Det är nästan samma CRUD som evenemang. _Ska stämmas av med David._
+- Alternativ om vi hinner: rabatter/medlemsförmåner.
 - Bilder på evenemang, pushnotiser, kalenderexport, väntelista vid fullt evenemang.
 
 ### Skisser av skärmarna
@@ -96,42 +96,42 @@ Se [backend/db/schema.sql](backend/db/schema.sql).
 
 ### API (utkast)
 
-| Metod | Route | Vem |
-|---|---|---|
-| POST | `/auth/register` | alla |
-| POST | `/auth/login` | alla |
-| GET / PUT | `/me` | inloggad (egen profil) |
-| GET | `/me/registrations` | inloggad |
-| GET | `/events`, `/events/:id` | inloggad |
-| POST | `/events` | admin |
-| PUT / DELETE | `/events/:id` | admin |
-| POST / DELETE | `/events/:id/registration` | inloggad (anmäl/avanmäl sig själv) |
-| GET | `/events/:id/registrations` | admin |
+| Metod         | Route                       | Vem                                |
+| ------------- | --------------------------- | ---------------------------------- |
+| POST          | `/auth/register`            | alla                               |
+| POST          | `/auth/login`               | alla                               |
+| GET / PUT     | `/me`                       | inloggad (egen profil)             |
+| GET           | `/me/registrations`         | inloggad                           |
+| GET           | `/events`, `/events/:id`    | inloggad                           |
+| POST          | `/events`                   | admin                              |
+| PUT / DELETE  | `/events/:id`               | admin                              |
+| POST / DELETE | `/events/:id/registration`  | inloggad (anmäl/avanmäl sig själv) |
+| GET           | `/events/:id/registrations` | admin                              |
 
 Utloggning sker i appen genom att JWT:n tas bort från SecureStore.
 
 ### Teknik
 
-| Del | Val |
-|---|---|
-| App | React Native, Expo, Expo Router, TypeScript, `expo-secure-store` för token |
-| Backend | Node.js och Express, JWT (`jsonwebtoken`), `bcryptjs` |
-| Databas | PostgreSQL (`pg`) |
-| Tester | `node:test` och `supertest` mot en riktig Postgres i CI |
-| CI/CD | GitHub Actions: tester → Docker-build → deploy vid push till `main` |
-| Hosting | Backend som Docker-container på **Render** (publik HTTPS), databas på **Neon** (hanterad Postgres, gratisnivå) |
-| Hemligheter | `DATABASE_URL` och `JWT_SECRET` som miljövariabler på Render, aldrig i appen eller Git |
+| Del         | Val                                                                                                            |
+| ----------- | -------------------------------------------------------------------------------------------------------------- |
+| App         | React Native, Expo, Expo Router, TypeScript, `expo-secure-store` för token                                     |
+| Backend     | Node.js och Express, JWT (`jsonwebtoken`), `bcryptjs`                                                          |
+| Databas     | PostgreSQL (`pg`)                                                                                              |
+| Tester      | `node:test` och `supertest` mot en riktig Postgres i CI                                                        |
+| CI/CD       | GitHub Actions: tester → Docker-build → deploy vid push till `main`                                            |
+| Hosting     | Backend som Docker-container på **Render** (publik HTTPS), databas på **Neon** (hanterad Postgres, gratisnivå) |
+| Hemligheter | `DATABASE_URL` och `JWT_SECRET` som miljövariabler på Render, aldrig i appen eller Git                         |
 
 ### Arbetsfördelning
 
 Båda jobbar med både app och backend. Vi delar upp per **funktion genom hela kedjan** (skärm → API → databas) så att båda kan förklara ett flöde från app till databas.
 
-| | Person A: *[namn]* | Person B: *[namn]* |
-|---|---|---|
+|         | Person A: _Andrea_                                                                     | Person B: _Alice_                                          |
+| ------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | Vecka 1 | Auth i backend (register/login, JWT, bcrypt) och inloggnings- och registreringsskärmar | Evenemang-CRUD i backend och lista/detalj/formulär i appen |
-| | Deploy: Render, Neon och deploy-hook i GitHub Actions | Roller och behörighetsmiddleware (admin/medlem) |
-| Vecka 2 | Profil (API och skärm) och tester för profil/auth | Anmälan (API och skärmar) och tester för evenemang/anmälan |
-| | Extrafunktion (om tid finns) | README och förberedelse av redovisning |
+|         | Deploy: Render, Neon och deploy-hook i GitHub Actions                                  | Roller och behörighetsmiddleware (admin/medlem)            |
+| Vecka 2 | Profil (API och skärm) och tester för profil/auth                                      | Anmälan (API och skärmar) och tester för evenemang/anmälan |
+|         | Extrafunktion (om tid finns)                                                           | README och förberedelse av redovisning                     |
 
 Arbetssätt: en branch per uppgift, pull request och att den andra läser innan merge. Uppgiftstavla (Att göra / Pågår / Klart) i GitHub Projects. Kort avstämning varje dag.
 
