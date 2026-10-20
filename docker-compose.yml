@@ -1,0 +1,26 @@
+# Lokal utveckling: startar Postgres (och backend) med `docker compose up`
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: karappen
+      POSTGRES_PASSWORD: karappen
+      POSTGRES_DB: karappen
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://karappen:karappen@db:5432/karappen
+      JWT_SECRET: lokal-utvecklingsnyckel
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+
+volumes:
+  db-data:
