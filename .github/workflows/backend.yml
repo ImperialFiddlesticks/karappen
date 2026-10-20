@@ -71,8 +71,8 @@ jobs:
         run: |
           rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
             --exclude node_modules --exclude .env \
-            backend docker-compose.prod.yml 
-            "ubuntu@$EC2_HOST:~/karappen/"
+            backend docker-compose.prod.yml \
+            "ubuntu@$EC2_HOST:karappen/"
 
       - name: Starta om på servern
         run: |
