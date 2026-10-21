@@ -6,8 +6,8 @@ import { useTheme } from "@/hooks/use-theme";
 import { formatEventDate } from "@/utils/formatDate";
 
 type Props = {
-  event: StudentEvent;
-  onPress?: () => void;
+  readonly event: StudentEvent;
+  readonly onPress?: () => void;
 };
 
 export function EventCard({ event, onPress }: Props) {
@@ -15,10 +15,15 @@ export function EventCard({ event, onPress }: Props) {
   const spots = event.max_participants
     ? `${event.registered_count}/${event.max_participants} platser`
     : `${event.registered_count} anmälda`;
+  const spotsLabel = event.max_participants
+    ? `${event.registered_count} av ${event.max_participants} platser bokade`
+    : `${event.registered_count} anmälda`;
 
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={`${event.title}, ${formatEventDate(event.starts_at)}, ${event.location}, ${spotsLabel}`}
+      accessibilityHint="Öppnar evenemangets detaljsida"
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,

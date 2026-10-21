@@ -2,7 +2,11 @@ import { StyleSheet } from "react-native";
 import { ThemedText } from "./ThemedText";
 
 export function ScreenTitle({ children }: { readonly children: string }) {
-  return <ThemedText style={styles.title}>{children}</ThemedText>;
+  return (
+    <ThemedText accessibilityRole="header" style={styles.title}>
+      {children}
+    </ThemedText>
+  );
 }
 
 const styles = StyleSheet.create({

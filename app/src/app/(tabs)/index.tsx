@@ -43,7 +43,11 @@ export default function EventsScreen() {
   if (isLoading) {
     return (
       <ThemedView style={styles.centered}>
-        <ActivityIndicator size="large" color={theme.accent} />
+        <ActivityIndicator
+          size="large"
+          color={theme.accent}
+          accessibilityLabel="Laddar evenemang"
+        />
       </ThemedView>
     );
   }
@@ -51,8 +55,10 @@ export default function EventsScreen() {
   if (error) {
     return (
       <ThemedView style={styles.centered}>
-        <ThemedText style={styles.message}>{error}</ThemedText>
-        <Button title="Försk igen" onPress={handleRetry} />
+        <ThemedText style={styles.message} accessibilityRole="alert">
+          {error}
+        </ThemedText>
+        <Button title="Försök igen" onPress={handleRetry} />
       </ThemedView>
     );
   }
