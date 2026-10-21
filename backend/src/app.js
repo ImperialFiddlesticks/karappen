@@ -3,6 +3,8 @@ import cors from "cors";
 import authRouter from "./routes/auth.js";
 import meRouter from "./routes/me.js";
 import { requireAuth } from "./middleware/auth.js";
+import { requireAdmin } from "./middleware/auth.js";
+import eventsRouter from "./routes/events.js";
 
 const app = express();
 
@@ -15,7 +17,7 @@ app.get("/health", (req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/me", requireAuth, meRouter);
-// TODO: app.use("/events", requireAuth, eventsRouter); //
+app.use("/events", requireAuth, eventsRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: "Hittades inte" });
