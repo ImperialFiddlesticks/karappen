@@ -1,0 +1,76 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Tabs } from "expo-router";
+import { View } from "react-native";
+
+import { RainbowStripe } from "@/components/RainbowStripe";
+import { useTheme } from "@/hooks/use-theme";
+
+export default function TabsLayout() {
+  const theme = useTheme();
+
+  return (
+    <Tabs
+      screenOptions={{
+        headerTitle: "Chas Academy Studentkår",
+        headerStyle: { backgroundColor: theme.header },
+        headerTintColor: theme.onHeader,
+        headerTitleStyle: { fontWeight: "700" },
+        headerTitleAlign: "center",
+        headerBackground: () => (
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: theme.header,
+              justifyContent: "flex-end",
+            }}
+          >
+            <RainbowStripe />
+          </View>
+        ),
+        tabBarActiveTintColor: theme.accent,
+        tabBarInactiveTintColor: theme.textSecondary,
+        tabBarStyle: { backgroundColor: theme.background },
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Evenemang",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons
+              name="calendar-outline"
+              color={color as string}
+              size={size}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="registrations"
+        options={{
+          title: "Mina anmälningar",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons
+              name="checkmark-circle-outline"
+              color={color as string}
+              size={size}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profil",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons
+              name="person-outline"
+              color={color as string}
+              size={size}
+            />
+          ),
+        }}
+      />
+    </Tabs>
+  );
+}
