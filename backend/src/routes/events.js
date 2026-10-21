@@ -1,6 +1,6 @@
 import { Router } from "express";
 import pool from "../db.js";
-
+import { requireAdmin } from "../middleware/auth.js";
 const router = Router();
 
 const SELECT_EVENT = `
@@ -66,7 +66,7 @@ router.get("/:id", async (req, res) => {
   res.json(event);
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireAdmin, async (req, res) => {
   const errors = validateEvent(req.body);
   if (errors.length > 0) {
     return res.status(400).json({ error: errors.join(", ") });
@@ -90,7 +90,7 @@ router.post("/", async (req, res) => {
   res.status(201).json({ ...rows[0], registered_count: 0 });
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     return res.status(404).json({ error: "Evenemanget hittades inte" });
@@ -120,7 +120,7 @@ router.put("/:id", async (req, res) => {
   res.json(await findEventById(id));
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     return res.status(404).json({ error: "Evenemanget hittades inte" });
