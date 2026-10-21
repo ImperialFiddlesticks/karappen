@@ -129,7 +129,7 @@ Båda jobbar med både app och backend. Vi delar upp per **funktion genom hela k
 
 |         | Person A: _Andrea_                                                                     | Person B: _Alice_                                          |
 | ------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Vecka 1 | Auth i backend (register/login, JWT, bcrypt) och inloggnings- och registreringsskärmar | Evenemang-CRUD i backend och lista/detalj/formulär i appen |
+| Vecka 1 | Evenemang-CRUD i backend och lista/detalj/formulär i appen | Auth i backend (register/login, JWT, bcrypt) och inloggnings- och registreringsskärmar |
 |         | Deploy: EC2, Docker Compose och deploy via SSH i GitHub Actions                        | Roller och behörighetsmiddleware (admin/medlem)            |
 | Vecka 2 | Profil (API och skärm) och tester för profil/auth                                      | Anmälan (API och skärmar) och tester för evenemang/anmälan |
 |         | Extrafunktion (om tid finns)                                                           | README och förberedelse av redovisning                     |
