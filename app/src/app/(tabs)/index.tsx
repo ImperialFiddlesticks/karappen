@@ -8,9 +8,12 @@ import { ThemedView } from "@/components/ThemedView";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { useTheme } from "@/hooks/use-theme";
 import { router } from "expo-router";
+import { ApiError } from "@/api/client";
+import { useSession } from "@/context/session";
 
 export default function EventsScreen() {
   const theme = useTheme();
+  const { token, signOut } = useSession();
   const [events, setEvents] = useState<StudentEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -19,11 +22,19 @@ export default function EventsScreen() {
   const loadEvents = useCallback(async () => {
     try {
       setError(null);
-      setEvents(await fetchEvents());
-    } catch {
-      setError("Kunde inte hämta evenemangen. Kontrollera din anslutning.");
+      setEvents(await fetchEvents(token));
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        signOut();
+      } else {
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "Kunde inte hämta evenemangen",
+        );
+      }
     }
-  }, []);
+  }, [token, signOut]);
 
   useEffect(() => {
     loadEvents().finally(() => setIsLoading(false));
