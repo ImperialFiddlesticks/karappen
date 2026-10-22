@@ -1,7 +1,12 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
-import { ScrollView, StyleSheet, ActivityIndicator } from "react-native";
-
+import {
+  ScrollView,
+  StyleSheet,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+} from "react-native";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import {
   createEvent,
   type EventInput,
@@ -91,7 +96,7 @@ export default function EventFormScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const eventId = id ? Number(id) : null;
   const isEditing = eventId !== null;
-
+  const headerHeight = useHeaderHeight();
   const { token } = useSession();
   const [values, setValues] = useState<FormValues>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
@@ -169,71 +174,76 @@ export default function EventFormScreen() {
       <Stack.Screen
         options={{ title: isEditing ? "Ändra evenemang" : "Nytt evenemang" }}
       />
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior="padding"
+        keyboardVerticalOffset={headerHeight}
       >
-        <FormField
-          label="Titel"
-          value={values.title}
-          onChangeText={setField("title")}
-          placeholder="Till exempel AW på Blues"
-          returnKeyType="next"
-        />
-        <FormField
-          label="Datum"
-          value={values.date}
-          onChangeText={setField("date")}
-          placeholder="2026-11-06"
-          keyboardType="numbers-and-punctuation"
-          returnKeyType="next"
-        />
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+          <FormField
+            label="Titel"
+            value={values.title}
+            onChangeText={setField("title")}
+            placeholder="Till exempel AW på Blues"
+            returnKeyType="next"
+          />
+          <FormField
+            label="Datum"
+            value={values.date}
+            onChangeText={setField("date")}
+            placeholder="2026-11-06"
+            keyboardType="numbers-and-punctuation"
+            returnKeyType="next"
+          />
 
-        <FormField
-          label="Tid"
-          value={values.time}
-          onChangeText={setField("time")}
-          placeholder="18:00"
-          keyboardType="numbers-and-punctuation"
-          returnKeyType="next"
-        />
-        <FormField
-          label="Plats"
-          value={values.location}
-          onChangeText={setField("location")}
-          placeholder="Till exempel Blues"
-          returnKeyType="next"
-        />
+          <FormField
+            label="Tid"
+            value={values.time}
+            onChangeText={setField("time")}
+            placeholder="18:00"
+            keyboardType="numbers-and-punctuation"
+            returnKeyType="next"
+          />
+          <FormField
+            label="Plats"
+            value={values.location}
+            onChangeText={setField("location")}
+            placeholder="Till exempel Blues"
+            returnKeyType="next"
+          />
 
-        <FormField
-          label="Max antal platser (valfritt)"
-          value={values.maxParticipants}
-          onChangeText={setField("maxParticipants")}
-          placeholder="Lämna tomt för obegränsat"
-          keyboardType="number-pad"
-          returnKeyType="next"
-        />
+          <FormField
+            label="Max antal platser (valfritt)"
+            value={values.maxParticipants}
+            onChangeText={setField("maxParticipants")}
+            placeholder="Lämna tomt för obegränsat"
+            keyboardType="number-pad"
+            returnKeyType="next"
+          />
 
-        <FormField
-          label="Beskrivning (valfritt)"
-          value={values.description}
-          onChangeText={setField("description")}
-          multiline
-          style={styles.multiline}
-        />
+          <FormField
+            label="Beskrivning (valfritt)"
+            value={values.description}
+            onChangeText={setField("description")}
+            multiline
+            style={styles.multiline}
+          />
 
-        {error && (
-          <ThemedText themeColor="danger" accessibilityRole="alert">
-            {error}
-          </ThemedText>
-        )}
-        <Button
-          title={isSubmitting ? "Sparar..." : submitLabel}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-        />
-      </ScrollView>
+          {error && (
+            <ThemedText themeColor="danger" accessibilityRole="alert">
+              {error}
+            </ThemedText>
+          )}
+          <Button
+            title={isSubmitting ? "Sparar..." : submitLabel}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }
