@@ -10,7 +10,7 @@ import { ActivityIndicator, StyleSheet } from "react-native";
 type Me = { id: number; email: string; name: string; role: "member" | "admin" };
 
 export default function ProfileScreen() {
-  const { token, signOut } = useSession();
+  const { token, signOut, isAdmin } = useSession();
   const [me, setMe] = useState<Me | null>(null);
   const [error, setError] = useState<string | null>(null)
 
@@ -30,6 +30,11 @@ export default function ProfileScreen() {
       {me && (
         <>
           <ThemedText>{me.name}</ThemedText>
+          {isAdmin && (
+            <ThemedText themeColor="accent" style={{ fontWeight: "700" }}>
+              Administratör
+            </ThemedText>
+          )}
           <ThemedText themeColor="textSecondary">{me.email}</ThemedText>
         </>
       )}

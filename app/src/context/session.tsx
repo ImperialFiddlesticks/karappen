@@ -1,4 +1,3 @@
-// import * as SecureStore from "expo-secure-store";
 import {
   deleteToken,
   getToken,
@@ -11,17 +10,24 @@ import {
   useEffect,
   useState,
 } from "react";
-import { apiFetch } from "@/api/client";
+import { ApiError, apiFetch } from "@/api/client";
 
-// const TOKEN_KEY = "token";
+export type User = {
+  id: number;
+  email: string;
+  name: string;
+  role: "member" | "admin";
+};
 
 type AuthResponse = {
   token: string;
-  user: { id: number; email: string; name: string; role: "member" | "admin" };
+  user: User;
 };
 
 type Session = {
   token: string | null;
+  user: User | null;
+  isAdmin: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
@@ -39,17 +45,34 @@ export function useSession() {
 
 export function SessionProvider({ children }: PropsWithChildren) {
   const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getToken()
-      .then(setToken)
-      .finally(() => setIsLoading(false));
+    async function restoreSession() {
+      try {
+        const saved = await getToken();
+        if (!saved) return;
+        setToken(saved);
+        try {
+          setUser(await apiFetch<User>("/me", { token: saved }));
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 401) {
+            await deleteToken();
+            setToken(null);
+          }
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    restoreSession();
   }, []);
 
-  async function saveToken(newToken: string) {
-    await storeToken(newToken);
-    setToken(newToken);
+  async function handleAuth(data: AuthResponse) {
+    await storeToken(data.token);
+    setUser(data.user);
+    setToken(data.token);
   }
 
   async function signIn(email: string, password: string) {
@@ -57,7 +80,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
-    await saveToken(data.token);
+    await handleAuth(data);
   }
 
   async function signUp(name: string, email: string, password: string) {
@@ -65,17 +88,26 @@ export function SessionProvider({ children }: PropsWithChildren) {
       method: "POST",
       body: JSON.stringify({ name, email, password }),
     });
-    await saveToken(data.token);
+    await handleAuth(data);
   }
 
   async function signOut() {
     await deleteToken();
+    setUser(null);
     setToken(null);
   }
 
   return (
     <SessionContext.Provider
-      value={{ token, isLoading, signIn, signUp, signOut }}
+      value={{
+        token,
+        user,
+        isAdmin: user?.role === "admin",
+        isLoading,
+        signIn,
+        signUp,
+        signOut,
+      }}
     >
       {children}
     </SessionContext.Provider>
