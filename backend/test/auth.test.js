@@ -77,3 +77,16 @@ test("GET /me ger den inloggade användaren", async () => {
   assert.equal(res.status, 200);
   assert.equal(res.body.email, email);
 });
+
+test("POST /auth/register ignorerar role och skapar alltid en medlem", async () => {
+  const res = await request(app)
+    .post("/auth/register")
+    .send({
+      email: `auth-test-role-${Date.now()}@test.se`,
+      password,
+      name: "Fuskare",
+      role: "admin",
+    });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.user.role, "member");
+});
