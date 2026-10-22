@@ -10,6 +10,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/use-theme";
 import { formatEventDate } from "@/utils/formatDate";
+import { eventColor } from "@/constants/theme";
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -73,16 +74,23 @@ export default function EventDetailScreen() {
         <ThemedText themeColor="accent" style={styles.date}>
           {formatEventDate(event.starts_at)}
         </ThemedText>
-        <ScreenTitle>{event.title}</ScreenTitle>
+
         <View
-          style={[styles.infoBox, { backgroundColor: theme.backgroundElement }]}
+          style={[
+            styles.card,
+            {
+              backgroundColor: theme.backgroundElement,
+              borderColor: eventColor(event.id),
+            },
+          ]}
         >
+          <ScreenTitle>{event.title}</ScreenTitle>
           <InfoRow icon="location-outline" text={event.location} />
           <InfoRow icon="people-outline" text={spots} />
+          <ThemedText style={styles.description}>
+            {event.description ?? "Ingen beskrivning."}
+          </ThemedText>
         </View>
-        <ThemedText style={styles.description}>
-          {event.description ?? "Ingen beskrivning."}
-        </ThemedText>
       </ScrollView>
     </ThemedView>
   );
@@ -98,7 +106,7 @@ function InfoRow({ icon, text }: InfoRowProps) {
   return (
     <View style={styles.infoRow}>
       <Ionicons name={icon} size={20} color={theme.textSecondary} />
-      <ThemedText>{text}</ThemedText>
+      <ThemedText themeColor="textSecondary">{text}</ThemedText>
     </View>
   );
 }
@@ -126,11 +134,12 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
   },
-  infoBox: {
+  card: {
     borderRadius: 16,
     padding: 16,
     gap: 8,
     marginBottom: 8,
+    borderWidth: 2,
   },
   infoRow: {
     flexDirection: "row",
@@ -139,5 +148,6 @@ const styles = StyleSheet.create({
   },
   description: {
     lineHeight: 24,
+    marginTop: 8,
   },
 });

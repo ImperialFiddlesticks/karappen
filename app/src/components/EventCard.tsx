@@ -4,6 +4,7 @@ import type { StudentEvent } from "@/api/events";
 import { ThemedText } from "./ThemedText";
 import { useTheme } from "@/hooks/use-theme";
 import { formatEventDate } from "@/utils/formatDate";
+import { eventColor } from "@/constants/theme";
 
 type Props = {
   readonly event: StudentEvent;
@@ -27,7 +28,10 @@ export function EventCard({ event, onPress }: Props) {
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
-        { backgroundColor: theme.backgroundElement },
+        {
+          backgroundColor: theme.backgroundElement,
+          borderColor: eventColor(event.id),
+        },
         pressed && styles.pressed,
       ]}
     >
@@ -49,6 +53,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     gap: 4,
+    borderWidth: 2,
   },
   pressed: {
     opacity: 0.7,

@@ -2,6 +2,7 @@ import { SessionProvider, useSession } from "@/context/session";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { useColorScheme } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { HeaderBackground } from "@/components/HeaderBackground";
 
 function RootNavigator() {
   const { token, isLoading } = useSession();
@@ -20,6 +21,7 @@ function RootNavigator() {
             headerBackTitle: "Tillbaka",
             headerStyle: { backgroundColor: theme.header },
             headerTintColor: theme.onHeader,
+            headerBackground: HeaderBackground,
           }}
         />
       </Stack.Protected>

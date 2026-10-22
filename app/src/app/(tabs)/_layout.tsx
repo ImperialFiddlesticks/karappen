@@ -1,9 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Tabs } from "expo-router";
-import { View } from "react-native";
-
-import { RainbowStripe } from "@/components/RainbowStripe";
 import { useTheme } from "@/hooks/use-theme";
+import { HeaderBackground } from "@/components/HeaderBackground";
 
 export default function TabsLayout() {
   const theme = useTheme();
@@ -16,17 +14,7 @@ export default function TabsLayout() {
         headerTintColor: theme.onHeader,
         headerTitleStyle: { fontWeight: "700" },
         headerTitleAlign: "center",
-        headerBackground: () => (
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: theme.header,
-              justifyContent: "flex-end",
-            }}
-          >
-            <RainbowStripe />
-          </View>
-        ),
+        headerBackground: HeaderBackground,
         tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: theme.textSecondary,
         tabBarStyle: { backgroundColor: theme.background },
