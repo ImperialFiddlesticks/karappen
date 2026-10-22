@@ -47,3 +47,8 @@ export async function fetchEvents(): Promise<StudentEvent[]> {
   await new Promise((resolve) => setTimeout(resolve, 800));
   return MOCK_EVENTS;
 }
+
+export async function fetchEvent(id: number): Promise<StudentEvent | null> {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  return MOCK_EVENTS.find((event) => event.id === id) ?? null;
+}

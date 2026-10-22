@@ -7,6 +7,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { useTheme } from "@/hooks/use-theme";
+import { router } from "expo-router";
 
 export default function EventsScreen() {
   const theme = useTheme();
@@ -68,7 +69,17 @@ export default function EventsScreen() {
       <FlatList
         data={events}
         keyExtractor={(event) => String(event.id)}
-        renderItem={({ item }) => <EventCard event={item} />}
+        renderItem={({ item }) => (
+          <EventCard
+            event={item}
+            onPress={() =>
+              router.push({
+                pathname: "/event/[id]",
+                params: { id: String(item.id) },
+              })
+            }
+          />
+        )}
         ListHeaderComponent={<ScreenTitle>Evenemang</ScreenTitle>}
         ListEmptyComponent={
           <ThemedText themeColor="textSecondary" style={styles.message}>
