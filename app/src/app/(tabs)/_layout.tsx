@@ -3,9 +3,11 @@ import { router, Tabs } from "expo-router";
 import { useTheme } from "@/hooks/use-theme";
 import { HeaderBackground } from "@/components/HeaderBackground";
 import { Pressable } from "react-native";
+import { useSession } from "@/context/session";
 
 export default function TabsLayout() {
   const theme = useTheme();
+  const { isAdmin } = useSession();
 
   return (
     <Tabs
@@ -32,16 +34,18 @@ export default function TabsLayout() {
               size={size}
             />
           ),
-          headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Nytt evenemang"
-              onPress={() => router.push("/event/form")}
-              style={{ marginRight: 16 }}
-            >
-              <Ionicons name="add" size={28} color={theme.onHeader} />
-            </Pressable>
-          ),
+          headerRight: isAdmin
+            ? () => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Nytt evenemang"
+                  onPress={() => router.push("/event/form")}
+                  style={{ marginRight: 16 }}
+                >
+                  <Ionicons name="add" size={28} color={theme.onHeader} />
+                </Pressable>
+              )
+            : undefined,
         }}
       />
       <Tabs.Screen

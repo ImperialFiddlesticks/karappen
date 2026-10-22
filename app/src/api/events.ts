@@ -41,3 +41,14 @@ export function createEvent(input: EventInput, token: string | null) {
     token,
   });
 }
+export function updateEvent(
+  id: number,
+  input: EventInput,
+  token: string | null,
+) {
+  return apiFetch<StudentEvent>(`/events/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+    token,
+  });
+}
