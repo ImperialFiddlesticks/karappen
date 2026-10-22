@@ -43,6 +43,39 @@ function validateEvent(body) {
   return errors;
 }
 
+async function registerUser(client, userId, eventId) {
+  const { rows } = await client.query(
+    "SELECT starts_at, max_participants FROM events WHERE id = $1 FOR UPDATE",
+    [eventId],
+  );
+  const event = rows[0];
+  if (!event) {
+    return { status: 404, message: "Evenemanget hittades inte" };
+  }
+  if (event.starts_at < new Date()) {
+    return { status: 409, message: "Evenemanget har redan varit" };
+  }
+  if (event.max_participants !== null) {
+    const { rows: countRows } = await client.query(
+      "SELECT COUNT(*)::int AS count FROM registrations WHERE event_id = $1",
+      [eventId],
+    );
+    if (countRows[0].count >= event.max_participants) {
+      return { status: 409, message: "Evenemanget är fullt" };
+    }
+  }
+  const { rowCount } = await client.query(
+    `INSERT INTO registrations (user_id, event_id)
+    VALUES ($1, $2)
+    ON CONFLICT (user_id, event_id) DO NOTHING`,
+    [userId, eventId],
+  );
+  if (rowCount === 0) {
+    return { status: 409, message: "Du är redan anmäld." };
+  }
+  return null;
+}
+
 router.get("/", async (req, res) => {
   const { rows } = await pool.query(
     `${SELECT_EVENT}
@@ -63,7 +96,11 @@ router.get("/:id", async (req, res) => {
   if (!event) {
     return res.status(404).json({ error: "Evenemanget hittades inte" });
   }
-  res.json(event);
+  const { rowCount } = await pool.query(
+    "SELECT 1 FROM registrations WHERE event_id = $1 AND user_id = $2",
+    [id, req.user.id],
+  );
+  res.json({ ...event, is_registered: rowCount > 0 });
 });
 
 router.post("/", requireAdmin, async (req, res) => {
@@ -130,6 +167,46 @@ router.delete("/:id", requireAdmin, async (req, res) => {
   ]);
   if (rowCount === 0) {
     return res.status(404).json({ error: "Evenemanget hittades inte" });
+  }
+  res.status(204).end();
+});
+
+router.post("/:id/registration", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(404).json({ error: "Evenemanget hittades inte" });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const error = await registerUser(client, req.user.id, id);
+    if (error) {
+      await client.query("ROLLBACK");
+      return res.status(error.status).json({ error: error.message });
+    }
+    await client.query("COMMIT");
+    res.status(201).json({ event_id: id, is_registered: true });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+});
+
+router.delete("/:id/registration", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(404).json({ error: "Evenemanget hittades inte" });
+  }
+  const { rowCount } = await pool.query(
+    "DELETE FROM registrations WHERE event_id = $1 AND user_id = $2",
+    [id, req.user.id],
+  );
+  if (rowCount === 0) {
+    return res
+      .status(404)
+      .json({ error: "Du är inte anmäld till evenemanget." });
   }
   res.status(204).end();
 });
