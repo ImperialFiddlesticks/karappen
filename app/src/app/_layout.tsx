@@ -1,15 +1,27 @@
 import { SessionProvider, useSession } from "@/context/session";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { useColorScheme } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 function RootNavigator() {
   const { token, isLoading } = useSession();
+  const theme = useTheme();
   if (isLoading) return null;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!!token}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="event/[id]"
+          options={{
+            headerShown: true,
+            title: "Evenemang",
+            headerBackTitle: "Tillbaka",
+            headerStyle: { backgroundColor: theme.header },
+            headerTintColor: theme.onHeader,
+          }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={!token}>
         <Stack.Screen name="sign-in" />
