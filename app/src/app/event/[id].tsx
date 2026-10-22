@@ -1,9 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 
-import { fetchEvent, fetchEvents, type StudentEvent } from "@/api/events";
+import { fetchEvent, deleteEvent, type StudentEvent } from "@/api/events";
 import { Button } from "@/components/Button";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { ThemedText } from "@/components/ThemedText";
@@ -13,6 +13,7 @@ import { formatEventDate } from "@/utils/formatDate";
 import { eventColor } from "@/constants/theme";
 import { ApiError } from "@/api/client";
 import { useSession } from "@/context/session";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const SAVED_MESSAGES: Record<string, string> = {
   created: "Evenemanget har skapats",
@@ -27,6 +28,10 @@ export default function EventDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const savedMessage = saved ? SAVED_MESSAGES[saved] : undefined;
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const loadEvent = useCallback(async () => {
     try {
@@ -60,6 +65,37 @@ export default function EventDetailScreen() {
     setIsLoading(true);
     await loadEvent();
     setIsLoading(false);
+  }
+
+  async function handleConfirmDelete() {
+    if (!event) return;
+    setIsConfirmOpen(false);
+    setActionError(null);
+    setIsDeleting(true);
+    try {
+      await deleteEvent(event.id, token);
+      setIsDeleted(true);
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : "Kunde inte ta bort evenemanget.",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  if (isDeleted) {
+    return (
+      <ThemedView style={styles.centered}>
+        <ThemedText accessibilityRole="alert" style={styles.message}>
+          Evenemanget har tagits bort.
+        </ThemedText>
+        <Button
+          title="Tillbaka till Evenemangen"
+          onPress={() => router.back()}
+        />
+      </ThemedView>
+    );
   }
   if (isLoading) {
     return (
@@ -122,18 +158,39 @@ export default function EventDetailScreen() {
           </ThemedText>
         </View>
         {isAdmin && (
-          <Button
-            title="Ändra"
-            variant="secondary"
-            onPress={() =>
-              router.push({
-                pathname: "/event/form",
-                params: { id: String(event.id) },
-              })
-            }
-          />
+          <View style={styles.actions}>
+            <Button
+              title="Ändra"
+              variant="secondary"
+              onPress={() =>
+                router.push({
+                  pathname: "/event/form",
+                  params: { id: String(event.id) },
+                })
+              }
+            />
+            <Button
+              title={isDeleting ? "Tar bort..." : "Ta bort"}
+              variant="danger"
+              onPress={() => setIsConfirmOpen(true)}
+              disabled={isDeleting}
+            />
+          </View>
+        )}
+        {actionError && (
+          <ThemedText themeColor="danger" accessibilityRole="alert">
+            {actionError}
+          </ThemedText>
         )}
       </ScrollView>
+      <ConfirmDialog
+        visible={isConfirmOpen}
+        title="Ta bort evenemang"
+        message={`Vill du ta bort "${event.title}"? Alla anmälningar tas också bort`}
+        confirmLabel="Ta bort"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </ThemedView>
   );
 }
@@ -197,5 +254,9 @@ const styles = StyleSheet.create({
     padding: 12,
     fontWeight: "700",
     overflow: "hidden",
+  },
+  actions: {
+    gap: 12,
+    marginTop: 8,
   },
 });

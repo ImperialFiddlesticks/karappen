@@ -6,7 +6,7 @@ import { useTheme } from "@/hooks/use-theme";
 type ButtonProps = {
   readonly title: string;
   readonly onPress: () => void;
-  readonly variant?: "primary" | "secondary";
+  readonly variant?: "primary" | "secondary" | "danger";
   readonly disabled?: boolean;
 };
 
@@ -17,9 +17,11 @@ export function Button({
   disabled = false,
 }: ButtonProps) {
   const theme = useTheme();
-  const backgroundColor =
-    variant === "primary" ? theme.primary : theme.secondary;
-  const textColor = variant === "primary" ? theme.onPrimary : theme.onSecondary;
+  const colors = {
+    primary: { background: theme.primary, text: theme.onPrimary },
+    secondary: { background: theme.secondary, text: theme.onSecondary },
+    danger: { background: theme.danger, text: theme.onDanger },
+  }[variant];
 
   return (
     <Pressable
@@ -28,11 +30,11 @@ export function Button({
       disabled={disabled}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor },
+        { backgroundColor: colors.background },
         (pressed || disabled) && styles.dimmed,
       ]}
     >
-      <ThemedText style={[styles.text, { color: textColor }]}>
+      <ThemedText style={[styles.text, { color: colors.text }]}>
         {title}
       </ThemedText>
     </Pressable>

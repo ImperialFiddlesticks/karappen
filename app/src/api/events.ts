@@ -52,3 +52,7 @@ export function updateEvent(
     token,
   });
 }
+
+export function deleteEvent(id: number, token: string | null) {
+  return apiFetch<null>(`/events/${id}`, { method: "DELETE", token });
+}
