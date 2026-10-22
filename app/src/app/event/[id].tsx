@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 
@@ -14,13 +14,19 @@ import { eventColor } from "@/constants/theme";
 import { ApiError } from "@/api/client";
 import { useSession } from "@/context/session";
 
+const SAVED_MESSAGES: Record<string, string> = {
+  created: "Evenemanget har skapats",
+  updated: "Ändringarna har sparats",
+};
+
 export default function EventDetailScreen() {
   const { id, saved } = useLocalSearchParams<{ id: string; saved?: string }>();
   const theme = useTheme();
-  const { token, signOut } = useSession();
+  const { token, signOut, isAdmin } = useSession();
   const [event, setEvent] = useState<StudentEvent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const savedMessage = saved ? SAVED_MESSAGES[saved] : undefined;
 
   const loadEvent = useCallback(async () => {
     try {
@@ -44,9 +50,11 @@ export default function EventDetailScreen() {
     }
   }, [id, token, signOut]);
 
-  useEffect(() => {
-    loadEvent().finally(() => setIsLoading(false));
-  }, [loadEvent]);
+  useFocusEffect(
+    useCallback(() => {
+      loadEvent().finally(() => setIsLoading(false));
+    }, [loadEvent]),
+  );
 
   async function handleRetry() {
     setIsLoading(true);
@@ -82,7 +90,7 @@ export default function EventDetailScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        {saved === "created" && (
+        {savedMessage && (
           <ThemedText
             accessibilityRole="alert"
             style={[
@@ -90,7 +98,7 @@ export default function EventDetailScreen() {
               { backgroundColor: theme.success, color: theme.onPrimary },
             ]}
           >
-            Evenemanget har skapats.
+            {savedMessage}
           </ThemedText>
         )}
         <ThemedText themeColor="accent" style={styles.date}>
@@ -113,6 +121,18 @@ export default function EventDetailScreen() {
             {event.description ?? "Ingen beskrivning."}
           </ThemedText>
         </View>
+        {isAdmin && (
+          <Button
+            title="Ändra"
+            variant="secondary"
+            onPress={() =>
+              router.push({
+                pathname: "/event/form",
+                params: { id: String(event.id) },
+              })
+            }
+          />
+        )}
       </ScrollView>
     </ThemedView>
   );

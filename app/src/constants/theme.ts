@@ -30,7 +30,7 @@ export const Colors = {
     onSecondary: Palette.navy,
     accent: Palette.blue,
     success: Palette.green,
-    danger: Palette.pink,
+    danger: "#d12a55",
   },
   dark: {
     text: "#ededed",

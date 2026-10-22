@@ -1,8 +1,14 @@
-import { router } from "expo-router";
-import { useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useState, useEffect } from "react";
+import { ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 
-import { createEvent, type EventInput } from "@/api/events";
+import {
+  createEvent,
+  type EventInput,
+  fetchEvent,
+  updateEvent,
+  type StudentEvent,
+} from "@/api/events";
 import { Button } from "@/components/Button";
 import { FormField } from "@/components/FormField";
 import { ThemedText } from "@/components/ThemedText";
@@ -65,11 +71,50 @@ function toEventInput(values: FormValues): EventInput {
   };
 }
 
+function pad(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function toFormValues(event: StudentEvent): FormValues {
+  const startsAt = new Date(event.starts_at);
+  return {
+    title: event.title,
+    date: `${startsAt.getFullYear()}-${pad(startsAt.getMonth() + 1)}-${pad(startsAt.getDate())}`,
+    time: `${pad(startsAt.getHours())}:${pad(startsAt.getMinutes())}`,
+    location: event.location,
+    maxParticipants: event.max_participants?.toString() ?? "",
+    description: event.description ?? "",
+  };
+}
+
 export default function EventFormScreen() {
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const eventId = id ? Number(id) : null;
+  const isEditing = eventId !== null;
+
   const { token } = useSession();
   const [values, setValues] = useState<FormValues>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingEvent, setIsLoadingEvent] = useState(isEditing);
+
+  useEffect(() => {
+    if (eventId === null) return;
+    fetchEvent(eventId, token)
+      .then((event) => {
+        if (event) {
+          setValues(toFormValues(event));
+        } else {
+          setError("Evenemanget hittades inte.");
+        }
+      })
+      .catch((err) => {
+        setError(
+          err instanceof Error ? err.message : "Kunde inte hämta evenemanget.",
+        );
+      })
+      .finally(() => setIsLoadingEvent(false));
+  }, [eventId, token]);
 
   function setField(field: keyof FormValues) {
     return (text: string) =>
@@ -87,19 +132,43 @@ export default function EventFormScreen() {
 
     setIsSubmitting(true);
     try {
-      const created = await createEvent(toEventInput(values), token);
-      router.replace({
-        pathname: "/event/[id]",
-        params: { id: String(created.id), saved: "created" },
-      });
+      const input = toEventInput(values);
+      if (eventId === null) {
+        const created = await createEvent(input, token);
+        router.replace({
+          pathname: "/event/[id]",
+          params: { id: String(created.id), saved: "created" },
+        });
+      } else {
+        await updateEvent(eventId, input, token);
+        router.dismissTo({
+          pathname: "/event/[id]",
+          params: { id: String(eventId), saved: "updated" },
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Något gick fel");
     } finally {
       setIsSubmitting(false);
     }
   }
+  if (isLoadingEvent) {
+    return (
+      <ThemedView style={styles.centered}>
+        <ActivityIndicator
+          size="large"
+          accessibilityLabel="Laddar evenemanget"
+        />
+      </ThemedView>
+    );
+  }
+  const submitLabel = isEditing ? "Spara ändringar" : "Skapa evenemang";
+
   return (
     <ThemedView style={styles.screen}>
+      <Stack.Screen
+        options={{ title: isEditing ? "Ändra evenemang" : "Nytt evenemang" }}
+      />
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
@@ -160,7 +229,7 @@ export default function EventFormScreen() {
           </ThemedText>
         )}
         <Button
-          title={isSubmitting ? "Sparar..." : "Skapa evenemang"}
+          title={isSubmitting ? "Sparar..." : submitLabel}
           onPress={handleSubmit}
           disabled={isSubmitting}
         />
@@ -173,4 +242,5 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   container: { padding: 16, gap: 4, paddingBottom: 48 },
   multiline: { minHeight: 120, textAlignVertical: "top" },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
 });
