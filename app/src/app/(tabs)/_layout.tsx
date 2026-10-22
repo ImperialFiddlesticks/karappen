@@ -1,7 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Tabs } from "expo-router";
+import { router, Tabs } from "expo-router";
 import { useTheme } from "@/hooks/use-theme";
 import { HeaderBackground } from "@/components/HeaderBackground";
+import { Pressable } from "react-native";
 
 export default function TabsLayout() {
   const theme = useTheme();
@@ -30,6 +31,16 @@ export default function TabsLayout() {
               color={color as string}
               size={size}
             />
+          ),
+          headerRight: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Nytt evenemang"
+              onPress={() => router.push("/event/form")}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons name="add" size={28} color={theme.onHeader} />
+            </Pressable>
           ),
         }}
       />

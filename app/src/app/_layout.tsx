@@ -24,6 +24,17 @@ function RootNavigator() {
             headerBackground: HeaderBackground,
           }}
         />
+        <Stack.Screen
+          name="event/form"
+          options={{
+            headerShown: true,
+            title: "Nytt evenemang",
+            headerBackTitle: "Tillbaka",
+            headerStyle: { backgroundColor: theme.header },
+            headerTintColor: theme.onHeader,
+            headerBackground: HeaderBackground,
+          }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={!token}>
         <Stack.Screen name="sign-in" />

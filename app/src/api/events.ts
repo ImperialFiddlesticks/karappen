@@ -25,3 +25,19 @@ export async function fetchEvent(id: number, token: string | null) {
     throw err;
   }
 }
+
+export type EventInput = {
+  title: string;
+  description: string | null;
+  starts_at: string;
+  location: string;
+  max_participants: number | null;
+};
+
+export function createEvent(input: EventInput, token: string | null) {
+  return apiFetch<StudentEvent>("/events", {
+    method: "POST",
+    body: JSON.stringify(input),
+    token,
+  });
+}
