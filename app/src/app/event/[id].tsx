@@ -15,7 +15,7 @@ import { ApiError } from "@/api/client";
 import { useSession } from "@/context/session";
 
 export default function EventDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, saved } = useLocalSearchParams<{ id: string; saved?: string }>();
   const theme = useTheme();
   const { token, signOut } = useSession();
   const [event, setEvent] = useState<StudentEvent | null>(null);
@@ -82,6 +82,17 @@ export default function EventDetailScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
+        {saved === "created" && (
+          <ThemedText
+            accessibilityRole="alert"
+            style={[
+              styles.banner,
+              { backgroundColor: theme.success, color: theme.onPrimary },
+            ]}
+          >
+            Evenemanget har skapats.
+          </ThemedText>
+        )}
         <ThemedText themeColor="accent" style={styles.date}>
           {formatEventDate(event.starts_at)}
         </ThemedText>
@@ -160,5 +171,11 @@ const styles = StyleSheet.create({
   description: {
     lineHeight: 24,
     marginTop: 8,
+  },
+  banner: {
+    borderRadius: 12,
+    padding: 12,
+    fontWeight: "700",
+    overflow: "hidden",
   },
 });

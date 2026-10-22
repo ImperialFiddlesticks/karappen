@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet } from "react-native";
 import { fetchEvents, type StudentEvent } from "@/api/events";
 import { Button } from "@/components/Button";
@@ -7,7 +7,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { useTheme } from "@/hooks/use-theme";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { ApiError } from "@/api/client";
 import { useSession } from "@/context/session";
 
@@ -36,9 +36,11 @@ export default function EventsScreen() {
     }
   }, [token, signOut]);
 
-  useEffect(() => {
-    loadEvents().finally(() => setIsLoading(false));
-  }, [loadEvents]);
+  useFocusEffect(
+    useCallback(() => {
+      loadEvents().finally(() => setIsLoading(false));
+    }, [loadEvents]),
+  );
 
   async function handleRetry() {
     setIsLoading(true);
