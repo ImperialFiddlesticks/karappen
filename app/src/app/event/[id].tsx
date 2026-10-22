@@ -3,7 +3,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 
-import { fetchEvent, type StudentEvent } from "@/api/events";
+import { fetchEvent, fetchEvents, type StudentEvent } from "@/api/events";
 import { Button } from "@/components/Button";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { ThemedText } from "@/components/ThemedText";
@@ -11,10 +11,13 @@ import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/use-theme";
 import { formatEventDate } from "@/utils/formatDate";
 import { eventColor } from "@/constants/theme";
+import { ApiError } from "@/api/client";
+import { useSession } from "@/context/session";
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const { token, signOut } = useSession();
   const [event, setEvent] = useState<StudentEvent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,16 +25,24 @@ export default function EventDetailScreen() {
   const loadEvent = useCallback(async () => {
     try {
       setError(null);
-      const result = await fetchEvent(Number(id));
+      const result = await fetchEvent(Number(id), token);
       if (result) {
         setEvent(result);
       } else {
-        setError("Evenemanget hittades inte.");
+        setError("Evenemanger hittades inte.");
       }
-    } catch {
-      setError("Kunde inte hämta evenemanget. Kontrollera din anslutning.");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        signOut();
+      } else {
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "Kunde inte hämta evenemanget.",
+        );
+      }
     }
-  }, [id]);
+  }, [id, token, signOut]);
 
   useEffect(() => {
     loadEvent().finally(() => setIsLoading(false));
