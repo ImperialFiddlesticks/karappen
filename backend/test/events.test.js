@@ -280,3 +280,30 @@ test("En medlem kan inte ta bort någon annans anmälan", async () => {
   const memberView = await memberApi.get(`/events/${id}`);
   assert.equal(memberView.body.is_registered, true);
 });
+
+test("GET /events/:id/registrations visar anmälda för admin", async () => {
+  const id = await createEvent("Sittning", "2099-09-01T18:00:00Z");
+  await pool.query("UPDATE users SET dietary = 'Vegetarisk' WHERE id = $1", [
+    memberId,
+  ]);
+  await memberApi.post(`/events/${id}/registration`);
+
+  const res = await adminApi.get(`/events/${id}/registrations`);
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.length, 1);
+  assert.equal(res.body[0].id, memberId);
+  assert.equal(res.body[0].dietary, "Vegetarisk");
+  assert.equal(res.body[0].password_hash, undefined);
+});
+
+test("GET /events/:id/registrations ger 403 för en vanlig medlem", async () => {
+  const id = await createEvent("Sittning", "2099-09-01T18:00:00Z");
+  const res = await memberApi.get(`/events/${id}/registrations`);
+  assert.equal(res.status, 403);
+});
+
+test("GET /events/:id/registrations ger 404 för ett evenemang som inte finns", async () => {
+  const res = await adminApi.get("/events/999999/registrations");
+  assert.equal(res.status, 404);
+});
