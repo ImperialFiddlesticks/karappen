@@ -9,6 +9,8 @@ import {
   registerForEvent,
   unregisterFromEvent,
   type EventDetail,
+  fetchRegistrants,
+  type Registrant,
 } from "@/api/events";
 import { Button } from "@/components/Button";
 import { ScreenTitle } from "@/components/ScreenTitle";
@@ -20,6 +22,7 @@ import { eventColor } from "@/constants/theme";
 import { ApiError } from "@/api/client";
 import { useSession } from "@/context/session";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { RegistrantList } from "@/components/RegistrantList";
 
 const SAVED_MESSAGES: Record<string, string> = {
   created: "Evenemanget har skapats",
@@ -41,15 +44,20 @@ export default function EventDetailScreen() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isUnregisterConfirmOpen, setIsUnregisterConfirmOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [registrants, setRegistrants] = useState<Registrant[] | null>(null);
 
   const loadEvent = useCallback(async () => {
     try {
       setError(null);
-      const result = await fetchEvent(Number(id), token);
+      const [result, list] = await Promise.all([
+        fetchEvent(Number(id), token),
+        isAdmin ? fetchRegistrants(Number(id), token) : Promise.resolve(null),
+      ]);
       if (result) {
         setEvent(result);
+        setRegistrants(list);
       } else {
-        setError("Evenemanger hittades inte.");
+        setError("Evenemanget hittades inte.");
       }
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -62,7 +70,7 @@ export default function EventDetailScreen() {
         );
       }
     }
-  }, [id, token, signOut]);
+  }, [id, token, signOut, isAdmin]);
 
   useFocusEffect(
     useCallback(() => {
@@ -254,6 +262,7 @@ export default function EventDetailScreen() {
             {actionError}
           </ThemedText>
         )}
+        {isAdmin && registrants && <RegistrantList registrants={registrants} />}
       </ScrollView>
       <ConfirmDialog
         visible={isConfirmOpen}
