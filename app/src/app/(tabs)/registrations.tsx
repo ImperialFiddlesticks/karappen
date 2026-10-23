@@ -1,12 +1,12 @@
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { ScreenTitle } from "@/components/ScreenTitle";
+import { fetchMyRegistrations } from "@/api/events";
+import { EventList } from "@/components/EventList";
 
 export default function RegistrationsScreen() {
   return (
-    <ThemedView style={{ flex: 1, padding: 16 }}>
-      <ScreenTitle>Anmälningar</ScreenTitle>
-      <ThemedText>Här kommer dina anmälningar</ThemedText>
-    </ThemedView>
+    <EventList
+      title="Mina anmälningar"
+      emptyMessage="Du är inte anmäld till något kommande evenemang."
+      fetchList={fetchMyRegistrations}
+    />
   );
 }
