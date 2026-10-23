@@ -3,7 +3,6 @@ import cors from "cors";
 import authRouter from "./routes/auth.js";
 import meRouter from "./routes/me.js";
 import { requireAuth } from "./middleware/auth.js";
-import { requireAdmin } from "./middleware/auth.js";
 import eventsRouter from "./routes/events.js";
 
 const app = express();

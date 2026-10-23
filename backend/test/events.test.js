@@ -4,18 +4,21 @@ import jwt from "jsonwebtoken";
 import request from "supertest";
 import app from "../src/app.js";
 import pool from "../src/db.js";
+import { randomUUID } from "node:crypto";
 
 let adminId;
 let memberId;
 let adminApi;
 let memberApi;
+let otherMemberId;
+let otherMemberApi;
 
 async function createUser(role) {
   const { rows } = await pool.query(
     `INSERT INTO users (email, password_hash, name, role)
     VALUES ($1, 'inte-en-riktig-hash', 'Testperson', $2)
     RETURNING id`,
-    [`events-test${role}-${Date.now()}@test.se`, role],
+    [`events-test-${role}-${randomUUID()}@test.se`, role],
   );
   return rows[0].id;
 }
@@ -30,23 +33,26 @@ before(async () => {
   memberId = await createUser("member");
   adminApi = loggedInAs(adminId, "admin");
   memberApi = loggedInAs(memberId, "member");
+  otherMemberId = await createUser("member");
+  otherMemberApi = loggedInAs(otherMemberId, "member");
 });
 
-async function createEvent(title, startsAt) {
+async function createEvent(title, startsAt, maxParticipants = 50) {
   const { rows } = await pool.query(
     `INSERT INTO events (title, starts_at, location, max_participants, created_by)
-     VALUES ($1, $2, 'Skolan', 50, $3)
+     VALUES ($1, $2, 'Skolan', $3, $4)
      RETURNING id`,
-    [title, startsAt, adminId],
+    [title, startsAt, maxParticipants, adminId],
   );
   return rows[0].id;
 }
 
 after(async () => {
   await pool.query("DELETE FROM events WHERE created_by = $1", [adminId]);
-  await pool.query("DELETE FROM users WHERE id IN ($1, $2)", [
+  await pool.query("DELETE FROM users WHERE id IN ($1, $2, $3)", [
     adminId,
     memberId,
+    otherMemberId,
   ]);
   await pool.end();
 });
@@ -200,4 +206,77 @@ test("DELETE /events/:id ger 403 och evenemanger finns kvar", async () => {
 
   const getRes = await adminApi.get(`/events/${id}`);
   assert.equal(getRes.status, 200);
+});
+
+test("POST /events/:id/registration anmäler medlemmen", async () => {
+  const id = await createEvent("Pub", "2099-07-01T18:00:00Z");
+  const res = await memberApi.post(`/events/${id}/registration`);
+  assert.equal(res.status, 201);
+
+  const memberView = await memberApi.get(`/events/${id}`);
+  assert.equal(memberView.body.registered_count, 1);
+  assert.equal(memberView.body.is_registered, true);
+
+  const adminView = await adminApi.get(`/events/${id}`);
+  assert.equal(adminView.body.is_registered, false);
+});
+
+test("POST /events/:id/registration ger 409 vid dubbelanmälan", async () => {
+  const id = await createEvent("Pub", "2099-07-01T18:00:00Z");
+  await memberApi.post(`/events/${id}/registration`);
+
+  const res = await memberApi.post(`/events/${id}/registration`);
+  assert.equal(res.status, 409);
+});
+
+test("POST /events/:id/registration ger 409 när evenemanget är fullt", async () => {
+  const id = await createEvent("Liten sittning", "2099-07-01T18:00:00Z", 1);
+  await memberApi.post(`/events/${id}/registration`);
+
+  const res = await otherMemberApi.post(`/events/${id}/registration`);
+  assert.equal(res.status, 409);
+});
+
+test("POST /events/:id/registration ger 409 för ett evenemang som har varit", async () => {
+  const id = await createEvent("Gammal pub", "2000-01-01T18:00:00Z");
+  const res = await memberApi.post(`/events/${id}/registration`);
+  assert.equal(res.status, 409);
+});
+
+test("POST /events/:id/registration ger 404 för ett evenemang som inte finns", async () => {
+  const res = await memberApi.post("/events/999999/registration");
+  assert.equal(res.status, 404);
+});
+
+test("POST /events/:id/registration ger 401 utan inloggning", async () => {
+  const id = await createEvent("Pub", "2099-07-01T18:00:00Z");
+  const res = await request(app).post(`/events/${id}/registration`);
+  assert.equal(res.status, 401);
+});
+
+test("DELETE /events/:id/registration avanmäler medlemmen", async () => {
+  const id = await createEvent("Pub", "2099-07-01T18:00:00Z");
+  await memberApi.post(`/events/${id}/registration`);
+  const res = await memberApi.delete(`/events/${id}/registration`);
+  assert.equal(res.status, 204);
+  const after = await memberApi.get(`/events/${id}`);
+  assert.equal(after.body.is_registered, false);
+  assert.equal(after.body.registered_count, 0);
+});
+
+test("DELETE /events/:id/registration ger 404 när man inte är anmäld", async () => {
+  const id = await createEvent("Pub", "2099-07-01T18:00:00Z");
+  const res = await memberApi.delete(`/events/${id}/registration`);
+  assert.equal(res.status, 404);
+});
+
+test("En medlem kan inte ta bort någon annans anmälan", async () => {
+  const id = await createEvent("Pub", "2099-07-01T18:00:00Z");
+  await memberApi.post(`/events/${id}/registration`);
+
+  const res = await otherMemberApi.delete(`/events/${id}/registration`);
+  assert.equal(res.status, 404);
+
+  const memberView = await memberApi.get(`/events/${id}`);
+  assert.equal(memberView.body.is_registered, true);
 });
