@@ -11,13 +11,17 @@ export type StudentEvent = {
   registered_count: number;
 };
 
+export type EventDetail = StudentEvent & {
+  is_registered: boolean;
+};
+
 export function fetchEvents(token: string | null) {
   return apiFetch<StudentEvent[]>("/events", { token });
 }
 
 export async function fetchEvent(id: number, token: string | null) {
   try {
-    return await apiFetch<StudentEvent>(`/events/${id}`, { token });
+    return await apiFetch<EventDetail>(`/events/${id}`, { token });
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) {
       return null;
@@ -55,4 +59,18 @@ export function updateEvent(
 
 export function deleteEvent(id: number, token: string | null) {
   return apiFetch<null>(`/events/${id}`, { method: "DELETE", token });
+}
+
+export function registerForEvent(id: number, token: string | null) {
+  return apiFetch<{ event_id: number; is_registered: boolean }>(
+    `/events/${id}/registration`,
+    { method: "POST", token },
+  );
+}
+
+export function unregisterFromEvent(id: number, token: string | null) {
+  return apiFetch<null>(`/events/${id}/registration`, {
+    method: "DELETE",
+    token,
+  });
 }

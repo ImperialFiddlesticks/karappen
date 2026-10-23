@@ -3,7 +3,13 @@ import { useLocalSearchParams, router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 
-import { fetchEvent, deleteEvent, type StudentEvent } from "@/api/events";
+import {
+  deleteEvent,
+  fetchEvent,
+  registerForEvent,
+  unregisterFromEvent,
+  type EventDetail,
+} from "@/api/events";
 import { Button } from "@/components/Button";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { ThemedText } from "@/components/ThemedText";
@@ -24,7 +30,7 @@ export default function EventDetailScreen() {
   const { id, saved } = useLocalSearchParams<{ id: string; saved?: string }>();
   const theme = useTheme();
   const { token, signOut, isAdmin } = useSession();
-  const [event, setEvent] = useState<StudentEvent | null>(null);
+  const [event, setEvent] = useState<EventDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const savedMessage = saved ? SAVED_MESSAGES[saved] : undefined;
@@ -32,6 +38,9 @@ export default function EventDetailScreen() {
   const [isDeleted, setIsDeleted] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isUnregisterConfirmOpen, setIsUnregisterConfirmOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const loadEvent = useCallback(async () => {
     try {
@@ -84,6 +93,41 @@ export default function EventDetailScreen() {
     }
   }
 
+  async function changeRegistration(
+    action: () => Promise<unknown>,
+    successMessage: string,
+  ) {
+    setActionError(null);
+    setNotice(null);
+    setIsRegistering(true);
+    try {
+      await action();
+      setNotice(successMessage);
+      await loadEvent();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Något gick fel.");
+    } finally {
+      setIsRegistering(false);
+    }
+  }
+
+  function handleRegister() {
+    if (!event) return;
+    changeRegistration(
+      () => registerForEvent(event.id, token),
+      "Du är anmäld!",
+    );
+  }
+
+  function handleConfirmUnregister() {
+    if (!event) return;
+    setIsUnregisterConfirmOpen(false);
+    changeRegistration(
+      () => unregisterFromEvent(event.id, token),
+      "Du är avanmäld.",
+    );
+  }
+
   if (isDeleted) {
     return (
       <ThemedView style={styles.centered}>
@@ -123,20 +167,19 @@ export default function EventDetailScreen() {
     ? `${event.registered_count} av ${event.max_participants} platser bokade`
     : `${event.registered_count} anmälda`;
 
+  const isFull =
+    event.max_participants !== null &&
+    event.registered_count >= event.max_participants;
+  const registerLabel = isRegistering
+    ? "Anmäler..."
+    : isFull
+      ? "Fullbokat"
+      : "Anmäl mig";
+  const bannerMessage = notice ?? savedMessage;
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        {savedMessage && (
-          <ThemedText
-            accessibilityRole="alert"
-            style={[
-              styles.banner,
-              { backgroundColor: theme.success, color: theme.onPrimary },
-            ]}
-          >
-            {savedMessage}
-          </ThemedText>
-        )}
         <ThemedText themeColor="accent" style={styles.date}>
           {formatEventDate(event.starts_at)}
         </ThemedText>
@@ -153,10 +196,39 @@ export default function EventDetailScreen() {
           <ScreenTitle>{event.title}</ScreenTitle>
           <InfoRow icon="location-outline" text={event.location} />
           <InfoRow icon="people-outline" text={spots} />
+          {event.is_registered && (
+            <InfoRow icon="checkmark-circle-outline" text="Du är anmäld" />
+          )}
           <ThemedText style={styles.description}>
             {event.description ?? "Ingen beskrivning."}
           </ThemedText>
         </View>
+        {bannerMessage && (
+          <View style={styles.notice}>
+            <Ionicons name="checkmark-circle" size={20} color={theme.success} />
+            <ThemedText
+              themeColor="textSecondary"
+              accessibilityRole="alert"
+              style={styles.noticeText}
+            >
+              {bannerMessage}
+            </ThemedText>
+          </View>
+        )}
+        {event.is_registered ? (
+          <Button
+            title={isRegistering ? "Avanmäler..." : "Avanmäl mig"}
+            variant="secondary"
+            onPress={() => setIsUnregisterConfirmOpen(true)}
+            disabled={isRegistering}
+          />
+        ) : (
+          <Button
+            title={registerLabel}
+            onPress={handleRegister}
+            disabled={isFull || isRegistering}
+          />
+        )}
         {isAdmin && (
           <View style={styles.actions}>
             <Button
@@ -190,6 +262,14 @@ export default function EventDetailScreen() {
         confirmLabel="Ta bort"
         onConfirm={handleConfirmDelete}
         onCancel={() => setIsConfirmOpen(false)}
+      />
+      <ConfirmDialog
+        visible={isUnregisterConfirmOpen}
+        title="Avanmäl dig"
+        message={`Vill du avanmäla dig från "${event.title}"? Din plats kan gå till någon annan.`}
+        confirmLabel="Avanmäl"
+        onConfirm={handleConfirmUnregister}
+        onCancel={() => setIsUnregisterConfirmOpen(false)}
       />
     </ThemedView>
   );
@@ -249,12 +329,16 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginTop: 8,
   },
-  banner: {
-    borderRadius: 12,
-    padding: 12,
-    fontWeight: "700",
-    overflow: "hidden",
+  notice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    justifyContent: "center",
   },
+  noticeText: {
+    fontWeight: "700",
+  },
+
   actions: {
     gap: 12,
     marginTop: 8,
