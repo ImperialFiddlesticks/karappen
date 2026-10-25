@@ -14,6 +14,7 @@ import { RainbowStripe } from "@/components/RainbowStripe";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useSession } from "@/context/session";
+import { DecorativeShapes } from "@/components/DecorativeShapes";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -37,7 +38,7 @@ export default function SignInScreen() {
 
   async function handleSubmit() {
     setError(null);
-    
+
     const validationError = validate(name, email, password);
     if (validationError) {
       setError(validationError);
@@ -56,6 +57,7 @@ export default function SignInScreen() {
 
   return (
     <ThemedView style={styles.screen}>
+      <DecorativeShapes />
       <SafeAreaView style={styles.screen}>
         <RainbowStripe />
         <KeyboardAvoidingView
@@ -67,7 +69,7 @@ export default function SignInScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <ThemedText type="subtitle" style={styles.title}>
-              Kårappen
+              Chas Academy Studentkår
             </ThemedText>
 
             <FormField

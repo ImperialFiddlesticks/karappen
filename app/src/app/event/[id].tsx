@@ -1,7 +1,18 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useLocalSearchParams, router, useFocusEffect } from "expo-router";
+import {
+  useLocalSearchParams,
+  router,
+  useFocusEffect,
+  Stack,
+} from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  View,
+  Pressable,
+} from "react-native";
 
 import {
   deleteEvent,
@@ -18,11 +29,12 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/use-theme";
 import { formatEventDate } from "@/utils/formatDate";
-import { eventColor } from "@/constants/theme";
+import { eventColor, eventTint } from "@/constants/theme";
 import { ApiError } from "@/api/client";
 import { useSession } from "@/context/session";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RegistrantList } from "@/components/RegistrantList";
+import { AdminMenu } from "@/components/AdminMenu";
 
 const SAVED_MESSAGES: Record<string, string> = {
   created: "Evenemanget har skapats",
@@ -45,6 +57,7 @@ export default function EventDetailScreen() {
   const [isUnregisterConfirmOpen, setIsUnregisterConfirmOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [registrants, setRegistrants] = useState<Registrant[] | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const loadEvent = useCallback(async () => {
     try {
@@ -187,6 +200,26 @@ export default function EventDetailScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerRight: isAdmin
+            ? () => (
+                <Pressable
+                  onPress={() => setIsMenuOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Adminverktyg"
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name="settings-outline"
+                    size={24}
+                    color={theme.onHeader}
+                  />
+                </Pressable>
+              )
+            : undefined,
+        }}
+      />
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedText themeColor="accent" style={styles.date}>
           {formatEventDate(event.starts_at)}
@@ -196,7 +229,7 @@ export default function EventDetailScreen() {
           style={[
             styles.card,
             {
-              backgroundColor: theme.backgroundElement,
+              backgroundColor: eventTint(event.id),
               borderColor: eventColor(event.id),
             },
           ]}
@@ -237,25 +270,10 @@ export default function EventDetailScreen() {
             disabled={isFull || isRegistering}
           />
         )}
-        {isAdmin && (
-          <View style={styles.actions}>
-            <Button
-              title="Ändra"
-              variant="secondary"
-              onPress={() =>
-                router.push({
-                  pathname: "/event/form",
-                  params: { id: String(event.id) },
-                })
-              }
-            />
-            <Button
-              title={isDeleting ? "Tar bort..." : "Ta bort"}
-              variant="danger"
-              onPress={() => setIsConfirmOpen(true)}
-              disabled={isDeleting}
-            />
-          </View>
+        {isDeleting && (
+          <ThemedText themeColor="textSecondary">
+            Tar bort evenemanget...
+          </ThemedText>
         )}
         {actionError && (
           <ThemedText themeColor="danger" accessibilityRole="alert">
@@ -279,6 +297,27 @@ export default function EventDetailScreen() {
         confirmLabel="Avanmäl"
         onConfirm={handleConfirmUnregister}
         onCancel={() => setIsUnregisterConfirmOpen(false)}
+      />
+      <AdminMenu
+        visible={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        items={[
+          {
+            label: "Ändra",
+            icon: "create-outline",
+            onPress: () =>
+              router.push({
+                pathname: "/event/form",
+                params: { id: String(event.id) },
+              }),
+          },
+          {
+            label: "Ta bort",
+            icon: "trash-outline",
+            destructive: true,
+            onPress: () => setIsConfirmOpen(true),
+          },
+        ]}
       />
     </ThemedView>
   );

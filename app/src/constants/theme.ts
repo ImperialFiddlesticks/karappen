@@ -24,6 +24,8 @@ export const Colors = {
     backgroundSelected: "#e3e5f0",
     header: Palette.navy,
     onHeader: "#ffffff",
+    onHeaderActive: Palette.cyan,
+    onHeaderMuted: "#a9aec8",
     primary: Palette.orange,
     onPrimary: Palette.navy,
     secondary: Palette.cyan,
@@ -41,6 +43,8 @@ export const Colors = {
     backgroundSelected: "#2a3260",
     header: "#0b0f24",
     onHeader: "#ffffff",
+    onHeaderActive: Palette.cyan,
+    onHeaderMuted: "#a9aec8",
     primary: Palette.orange,
     onPrimary: Palette.navy,
     secondary: Palette.cyan,
@@ -106,4 +110,8 @@ export const MaxContentWidth = 800;
 
 export function eventColor(id: number) {
   return Stripe[id % Stripe.length];
+}
+
+export function eventTint(id: number) {
+  return `${eventColor(id)}1a`;
 }
