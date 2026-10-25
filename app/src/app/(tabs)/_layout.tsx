@@ -4,10 +4,13 @@ import { useTheme } from "@/hooks/use-theme";
 import { HeaderBackground } from "@/components/HeaderBackground";
 import { Pressable } from "react-native";
 import { useSession } from "@/context/session";
+import { TabBarBackground } from "@/components/TabBarBackground";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabsLayout() {
   const theme = useTheme();
   const { isAdmin } = useSession();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -18,9 +21,16 @@ export default function TabsLayout() {
         headerTitleStyle: { fontWeight: "700" },
         headerTitleAlign: "center",
         headerBackground: HeaderBackground,
-        tabBarActiveTintColor: theme.accent,
-        tabBarInactiveTintColor: theme.textSecondary,
-        tabBarStyle: { backgroundColor: theme.background },
+        tabBarActiveTintColor: theme.onHeaderActive,
+        tabBarInactiveTintColor: theme.onHeaderMuted,
+        tabBarStyle: {
+          backgroundColor: theme.header,
+          borderTopWidth: 0,
+          height: 68 + insets.bottom,
+          paddingTop: 10,
+          paddingBottom: 8 + insets.bottom,
+        },
+        tabBarBackground: TabBarBackground,
       }}
     >
       <Tabs.Screen
