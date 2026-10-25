@@ -14,6 +14,7 @@ import { RainbowStripe } from "@/components/RainbowStripe";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useSession } from "@/context/session";
+import { DecorativeShapes } from "@/components/DecorativeShapes";
 
 export default function SignInScreen() {
   const { signIn } = useSession();
@@ -40,6 +41,8 @@ export default function SignInScreen() {
 
   return (
     <ThemedView style={styles.screen}>
+      <DecorativeShapes />
+
       <SafeAreaView style={styles.screen}>
         <RainbowStripe />
         <KeyboardAvoidingView
@@ -51,7 +54,7 @@ export default function SignInScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <ThemedText type="subtitle" style={styles.title}>
-              Kårappen
+              Chas Academy Studentkår
             </ThemedText>
 
             <FormField
