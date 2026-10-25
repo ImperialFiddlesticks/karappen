@@ -78,3 +78,17 @@ export function unregisterFromEvent(id: number, token: string | null) {
 export function fetchMyRegistrations(token: string | null) {
   return apiFetch<StudentEvent[]>("/me/registrations", { token });
 }
+
+export type Registrant = {
+  id: number;
+  name: string;
+  emaiL: string;
+  program: string | null;
+  year: number | null;
+  dietary: string | null;
+  registered_at: string;
+};
+
+export function fetchRegistrants(eventId: number, token: string | null) {
+  return apiFetch<Registrant[]>(`/events/${eventId}/registrations`, { token });
+}

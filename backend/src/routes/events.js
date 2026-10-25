@@ -210,4 +210,26 @@ router.delete("/:id/registration", async (req, res) => {
   }
   res.status(204).end();
 });
+
+router.get("/:id/registrations", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(404).json({ error: "Evenemanget hittades inte." });
+  }
+
+  const event = await findEventById(id);
+  if (!event) {
+    return res.status(404).json({ error: "Evenemanget hittades inte." });
+  }
+
+  const { rows } = await pool.query(
+    `SELECT users.id, users.name, users.email, users.program, users.year, users.dietary, registrations.created_at AS registered_at
+    FROM registrations
+    JOIN users ON users.id = registrations.user_id
+    WHERE registrations.event_id = $1
+    ORDER BY registrations.created_at`,
+    [id],
+  );
+  res.json(rows);
+});
 export default router;
