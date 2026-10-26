@@ -39,6 +39,10 @@ import { AdminMenu } from "@/components/AdminMenu";
 const SAVED_MESSAGES: Record<string, string> = {
   created: "Evenemanget har skapats",
   updated: "Ändringarna har sparats",
+  "created-without-image":
+    "Evenemanget har skapats, men bilden kunde inte laddas upp. Försök igen via Ändra.",
+  "updated-without-image":
+    "Ändringarna har sparats, men bilden kunde inte laddas upp. Försök igen via Ändra.",
 };
 
 export default function EventDetailScreen() {

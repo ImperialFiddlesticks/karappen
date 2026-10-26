@@ -14,12 +14,13 @@ export async function apiFetch<T>(
   path: string,
   { token, headers, ...options }: Options = {},
 ): Promise<T> {
+  const isFormData = options.body instanceof FormData;
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, {
       ...options,
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
@@ -33,4 +34,8 @@ export async function apiFetch<T>(
     throw new ApiError(data?.error ?? "Något gick fel", res.status);
   }
   return data as T;
+}
+
+export function toAbsoluteUrl(path: string) {
+  return `${API_URL}${path}`;
 }

@@ -1,4 +1,5 @@
 import { ApiError, apiFetch } from "./client";
+import type { ImagePickerAsset } from "expo-image-picker";
 
 export type StudentEvent = {
   id: number;
@@ -9,6 +10,7 @@ export type StudentEvent = {
   max_participants: number | null;
   created_by: number;
   registered_count: number;
+  image_url: string | null;
 };
 
 export type EventDetail = StudentEvent & {
@@ -91,4 +93,27 @@ export type Registrant = {
 
 export function fetchRegistrants(eventId: number, token: string | null) {
   return apiFetch<Registrant[]>(`/events/${eventId}/registrations`, { token });
+}
+
+export function uploadEventImage(
+  id: number,
+  image: ImagePickerAsset,
+  token: string | null,
+) {
+  const formData = new FormData();
+  if (image.file) {
+    formData.append("image", image.file);
+  } else {
+    formData.append("image", {
+      uri: image.uri,
+      name: image.fileName ?? "bild.jpg",
+      type: image.mimeType ?? "image/jpeg",
+    } as unknown as Blob);
+  }
+
+  return apiFetch<StudentEvent>(`/events/${id}/image`, {
+    method: "POST",
+    body: formData,
+    token,
+  });
 }
