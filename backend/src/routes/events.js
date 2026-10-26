@@ -1,6 +1,7 @@
 import { Router } from "express";
 import pool from "../db.js";
 import { requireAdmin } from "../middleware/auth.js";
+import { deleteImageFile, handleImageUpload } from "../upload.js";
 const router = Router();
 
 const SELECT_EVENT = `
@@ -162,12 +163,15 @@ router.delete("/:id", requireAdmin, async (req, res) => {
   if (!Number.isInteger(id)) {
     return res.status(404).json({ error: "Evenemanget hittades inte" });
   }
-  const { rowCount } = await pool.query("DELETE FROM events WHERE id = $1", [
-    id,
-  ]);
-  if (rowCount === 0) {
+
+  const { rows } = await pool.query(
+    "DELETE FROM events WHERE id = $1 RETURNING image_url",
+    [id],
+  );
+  if (rows.length === 0) {
     return res.status(404).json({ error: "Evenemanget hittades inte" });
   }
+  await deleteImageFile(rows[0].image_url);
   res.status(204).end();
 });
 
@@ -231,5 +235,24 @@ router.get("/:id/registrations", requireAdmin, async (req, res) => {
     [id],
   );
   res.json(rows);
+});
+
+router.post("/:id/image", requireAdmin, handleImageUpload, async (req, res) => {
+  const id = Number(req.params.id);
+  const imageUrl = `/uploads/${req.file.filename}`;
+
+  const { rows } = await pool.query(
+    `UPDATE events SET image_url = $1
+    WHERE id = $2
+    RETURNING (SELECT image_url FROM EVENTS WHERE id = $2) AS old_image_url`,
+    [imageUrl, Number.isInteger(id) ? id : null],
+  );
+  if (rows.length === 0) {
+    await deleteImageFile(imageUrl);
+    return res.status(404).json({ error: "Evenemanget hittades inte" });
+  }
+
+  await deleteImageFile(rows[0].old_image_url);
+  res.json(await findEventById(id));
 });
 export default router;

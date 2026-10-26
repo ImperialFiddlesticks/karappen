@@ -4,11 +4,13 @@ import authRouter from "./routes/auth.js";
 import meRouter from "./routes/me.js";
 import { requireAuth } from "./middleware/auth.js";
 import eventsRouter from "./routes/events.js";
+import { UPLOAD_DIR } from "./upload.js";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static(UPLOAD_DIR, { maxAge: "7d" }));
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });

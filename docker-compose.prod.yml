@@ -21,6 +21,8 @@ services:
       PORT: 3000
       DATABASE_URL: postgres://karappen:${POSTGRES_PASSWORD}@db:5432/karappen
       JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - "uploads:/app/uploads"
     ports:
       - "80:3000"
     depends_on:
@@ -29,3 +31,4 @@ services:
 
 volumes:
   db-data:
+  uploads:
