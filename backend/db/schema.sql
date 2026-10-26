@@ -28,3 +28,5 @@ CREATE TABLE IF NOT EXISTS registrations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, event_id)
 );
+
+ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url TEXT;

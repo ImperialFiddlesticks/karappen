@@ -5,6 +5,13 @@ import request from "supertest";
 import app from "../src/app.js";
 import pool from "../src/db.js";
 import { randomUUID } from "node:crypto";
+import { deleteImageFile, UPLOAD_DIR } from "../src/upload.js";
+import { readdir } from "node:fs/promises";
+
+const TINY_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64",
+);
 
 let adminId;
 let memberId;
@@ -48,6 +55,11 @@ async function createEvent(title, startsAt, maxParticipants = 50) {
 }
 
 after(async () => {
+  const { rows: imageRows } = await pool.query(
+    "SELECT image_url FROM events WHERE created_by = $1 AND image_url IS NOT NULL",
+    [adminId],
+  );
+  await Promise.all(imageRows.map((row) => deleteImageFile(row.image_url)));
   await pool.query("DELETE FROM events WHERE created_by = $1", [adminId]);
   await pool.query("DELETE FROM users WHERE id IN ($1, $2, $3)", [
     adminId,
@@ -306,4 +318,75 @@ test("GET /events/:id/registrations ger 403 för en vanlig medlem", async () => 
 test("GET /events/:id/registrations ger 404 för ett evenemang som inte finns", async () => {
   const res = await adminApi.get("/events/999999/registrations");
   assert.equal(res.status, 404);
+});
+
+test("POST /events/:id/image laddar upp en bild som admin", async () => {
+  const id = await createEvent("Pub", "2099-10-01T18:00:00Z");
+
+  const res = await adminApi
+    .post(`/events/${id}/image`)
+    .attach("image", TINY_PNG, {
+      filename: "bild.png",
+      contentType: "image/png",
+    });
+
+  assert.equal(res.status, 200);
+  assert.match(res.body.image_url, /^\/uploads\/.+\.png$/);
+
+  const imageRes = await request(app).get(res.body.image_url);
+  assert.equal(imageRes.status, 200);
+});
+
+test("POST /events/:id/image ersätter den gamla bilden", async () => {
+  const id = await createEvent("Pub", "2099-10-01T18:00:00Z");
+  const first = await adminApi
+    .post(`/events/${id}/image`)
+    .attach("image", TINY_PNG, { filename: "a.png", contentType: "image/png" });
+  const second = await adminApi
+    .post(`/events/${id}/image`)
+    .attach("image", TINY_PNG, { filename: "b.png", contentType: "image/png" });
+
+  const files = await readdir(UPLOAD_DIR);
+  assert.ok(!files.includes(first.body.image_url.split("/").pop()));
+  assert.ok(files.includes(second.body.image_url.split("/").pop()));
+});
+
+test("POST /events/:id/image ger 403 för en vanlig medlem", async () => {
+  const id = await createEvent("Pub", "2099-10-01T18:00:00Z");
+  const res = await memberApi
+    .post(`/events/${id}/image`)
+    .attach("image", TINY_PNG, {
+      filename: "bild.png",
+      contentType: "image/png",
+    });
+
+  assert.equal(res.status, 403);
+});
+
+test("POST /events/:id/image ger 400 för fel filtyp", async () => {
+  const id = await createEvent("Pub", "2099-10-01T18:00:00Z");
+  const res = await adminApi
+    .post(`/events/${id}/image`)
+    .attach("image", Buffer.from("inte en bild"), {
+      filename: "virus.exe",
+      contentType: "application/octet-stream",
+    });
+  assert.equal(res.status, 400);
+});
+
+test("POST /events/:id/image ger 400 för en för stor bild", async () => {
+  const id = await createEvent("Pub", "2099-10-01T18:00:00Z");
+  const res = await adminApi
+    .post(`/events/${id}/image`)
+    .attach("image", Buffer.alloc(6 * 1024 * 1024), {
+      filename: "stor.png",
+      contentType: "image/png",
+    });
+  assert.equal(res.status, 400);
+});
+
+test("POST /events/:id/image ger 400 utan bild", async () => {
+  const id = await createEvent("Pub", "2099-10-01T18:00:00Z");
+  const res = await adminApi.post(`/events/${id}/image`);
+  assert.equal(res.status, 400);
 });
