@@ -82,3 +82,78 @@ test("GET /me/registrations ger 401 utan inloggning", async () => {
   const res = await request(app).get("/me/registrations");
   assert.equal(res.status, 401);
 });
+
+const validProfile = {
+  name: "Namn Namnsson",
+  program: "Frontend Mobil och Webb",
+  year: 2,
+  dietary: "Vegetarisk",
+};
+
+test("GET /me visar min profil utan lösenordshash", async () => {
+  const res = await memberApi.get("/me");
+  assert.equal(res.status, 200);
+  assert.equal(res.body.id, memberId);
+  assert.equal(res.body.password_hash, undefined);
+});
+
+test("PUT /me uppdaterar profilen och den sparas", async () => {
+  const res = await memberApi.put("/me").send(validProfile);
+  assert.equal(res.status, 200);
+  assert.equal(res.body.name, "Namn Namnsson");
+  assert.equal(res.body.year, 2);
+  assert.equal(res.body.password_hash, undefined);
+
+  const getRes = await memberApi.get("/me");
+  assert.equal(getRes.body.dietary, "Vegetarisk");
+});
+
+test("PUT /me sparar tomma valfria fält som null", async () => {
+  const res = await memberApi
+    .put("/me")
+    .send({ name: "Namn Namnsson", program: "", year: null, dietary: "" });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.program, null);
+  assert.equal(res.body.dietary, null);
+});
+
+test("PUT /me ger 400 utan namn", async () => {
+  const res = await memberApi.put("/me").send({ ...validProfile, name: " " });
+  assert.equal(res.status, 400);
+});
+
+test("PUT /me ger 400 för ogiltig årskurs", async () => {
+  const tooHigh = await memberApi.put("/me").send({ ...validProfile, year: 7 });
+  assert.equal(tooHigh.status, 400);
+  const notNumber = await memberApi
+    .put("/me")
+    .send({ ...validProfile, year: "två" });
+  assert.equal(notNumber.status, 400);
+});
+
+test("PUT /me kan inte ändra rollen", async () => {
+  const res = await memberApi
+    .put("/me")
+    .send({ ...validProfile, role: "admin" });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.role, "member");
+
+  const { rows } = await pool.query("SELECT role FROM users WHERE id = $1", [
+    memberId,
+  ]);
+  assert.equal(rows[0].role, "member");
+});
+
+test("PUT /me ändrar inte någon annans profil", async () => {
+  await memberApi.put("/me").send({ ...validProfile, name: "Bara jag" });
+
+  const { rows } = await pool.query("SELECT name FROM users WHERE id = $1", [
+    otherMemberId,
+  ]);
+  assert.equal(rows[0].name, "Testperson");
+});
+
+test("PUT /me ger 401 utan inloggning", async () => {
+  const res = await request(app).put("/me").send(validProfile);
+  assert.equal(res.status, 401);
+});
