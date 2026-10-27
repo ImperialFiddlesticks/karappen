@@ -2,7 +2,6 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import type { StudentEvent } from "@/api/events";
 import { ThemedText } from "./ThemedText";
-import { useTheme } from "@/hooks/use-theme";
 import { formatEventDate } from "@/utils/formatDate";
 import { eventColor, eventTint } from "@/constants/theme";
 
@@ -12,7 +11,6 @@ type Props = {
 };
 
 export function EventCard({ event, onPress }: Props) {
-  const theme = useTheme();
   const spots = event.max_participants
     ? `${event.registered_count}/${event.max_participants} platser`
     : `${event.registered_count} anmälda`;

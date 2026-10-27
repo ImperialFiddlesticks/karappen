@@ -4,7 +4,7 @@ import { ScreenTitle } from "@/components/ScreenTitle";
 import { useSession } from "@/context/session";
 import { Button } from "@/components/Button";
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, apiFetch } from "@/api/client";
+import { ApiError } from "@/api/client";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,6 +19,8 @@ import {
 } from "@/api/profile";
 import { useHeaderHeight } from "expo-router/build/react-navigation/index.js";
 import { FormField } from "@/components/FormField";
+import { Image } from "expo-image";
+import { programIcon } from "@/constants/programs";
 
 type FormValues = {
   name: string;
@@ -148,6 +150,7 @@ export default function ProfileScreen() {
     );
   }
 
+  const icon = programIcon(profile.program);
   return (
     <ThemedView style={styles.screen}>
       <KeyboardAvoidingView
@@ -161,6 +164,14 @@ export default function ProfileScreen() {
         >
           <ScreenTitle>Profil</ScreenTitle>
           <ThemedText themeColor="textSecondary">{profile.email}</ThemedText>
+          {icon && (
+            <Image
+              source={icon}
+              contentFit="contain"
+              accessibilityLabel={`Program: ${profile.program?.trim().toUpperCase()}`}
+              style={styles.programIcon}
+            />
+          )}
           {isAdmin && (
             <ThemedText themeColor="accent" style={styles.badge}>
               Administratör
@@ -235,4 +246,5 @@ const styles = StyleSheet.create({
   message: { textAlign: "center" },
   badge: { fontWeight: 100, textAlignVertical: "top" },
   multiline: { minHeight: 100, textAlignVertical: "top" },
+  programIcon: { width: 48, height: 48 },
 });
