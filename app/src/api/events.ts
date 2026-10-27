@@ -9,6 +9,7 @@ export type StudentEvent = {
   max_participants: number | null;
   created_by: number;
   registered_count: number;
+  image_url: string | null;
 };
 
 export type EventDetail = StudentEvent & {
