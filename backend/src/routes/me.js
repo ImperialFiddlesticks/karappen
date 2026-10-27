@@ -15,13 +15,19 @@ function validateProfile(body) {
   } else if (name.trim().length > MAX_NAME_LENGTH) {
     errors.push(`Namnet får vara högst ${MAX_NAME_LENGTH} tecken`);
   }
-  if (program != null && (typeof program !== "string" || program.trim().length > MAX_TEXT_LENGTH)) {
+  if (
+    program != null &&
+    (typeof program !== "string" || program.trim().length > MAX_TEXT_LENGTH)
+  ) {
     errors.push(`Program måste vara text, högst ${MAX_TEXT_LENGTH} tecken`);
   }
-  if (year != null && !(Number.isInteger(year) && year >= 1 && year <= 6)) {
-    errors.push("Årskurs måste vara ett heltal mellan 1 och 6");
+  if (year != null && !(Number.isInteger(year) && year >= 0 && year <= 99)) {
+    errors.push("Programår måste vara ett tvåsiffrigt tal, t.ex. 26");
   }
-  if (dietary != null && (typeof dietary !== "string" || dietary.trim().length > MAX_TEXT_LENGTH)) {
+  if (
+    dietary != null &&
+    (typeof dietary !== "string" || dietary.trim().length > MAX_TEXT_LENGTH)
+  ) {
     errors.push(`Specialkost måste vara text, högst ${MAX_TEXT_LENGTH} tecken`);
   }
   return errors;
@@ -50,13 +56,13 @@ router.put("/", async (req, res) => {
         SET name = $1, program = $2, year = $3, dietary = $4
       WHERE id = $5
       RETURNING id, email, name, program, year, dietary, role`,
-      [
-        name.trim(),
-        program?.trim() || null,
-        year ?? null,
-        dietary?.trim() || null,
-        req.user.id,
-      ],
+    [
+      name.trim(),
+      program?.trim() || null,
+      year ?? null,
+      dietary?.trim() || null,
+      req.user.id,
+    ],
   );
   if (!rows[0]) {
     return res.status(404).json({ error: "Användaren hittades inte" });
