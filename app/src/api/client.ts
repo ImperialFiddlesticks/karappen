@@ -1,5 +1,9 @@
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
+export function assetUrl(path: string) {
+  return `${API_URL}${path}`;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
