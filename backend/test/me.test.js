@@ -86,7 +86,7 @@ test("GET /me/registrations ger 401 utan inloggning", async () => {
 const validProfile = {
   name: "Namn Namnsson",
   program: "Frontend Mobil och Webb",
-  year: 2,
+  year: 26,
   dietary: "Vegetarisk",
 };
 
@@ -101,7 +101,7 @@ test("PUT /me uppdaterar profilen och den sparas", async () => {
   const res = await memberApi.put("/me").send(validProfile);
   assert.equal(res.status, 200);
   assert.equal(res.body.name, "Namn Namnsson");
-  assert.equal(res.body.year, 2);
+  assert.equal(res.body.year, 26);
   assert.equal(res.body.password_hash, undefined);
 
   const getRes = await memberApi.get("/me");
@@ -122,9 +122,19 @@ test("PUT /me ger 400 utan namn", async () => {
   assert.equal(res.status, 400);
 });
 
-test("PUT /me ger 400 för ogiltig årskurs", async () => {
-  const tooHigh = await memberApi.put("/me").send({ ...validProfile, year: 7 });
+test("PUT /me ger 400 för ogiltigt programår", async () => {
+  const tooHigh = await memberApi
+    .put("/me")
+    .send({ ...validProfile, year: 100 });
   assert.equal(tooHigh.status, 400);
+  const negative = await memberApi
+    .put("/me")
+    .send({ ...validProfile, year: -1 });
+  assert.equal(negative.status, 400);
+  const decimal = await memberApi
+    .put("/me")
+    .send({ ...validProfile, year: 25.5 });
+  assert.equal(decimal.status, 400);
   const notNumber = await memberApi
     .put("/me")
     .send({ ...validProfile, year: "två" });
