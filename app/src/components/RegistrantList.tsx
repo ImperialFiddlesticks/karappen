@@ -12,7 +12,8 @@ type Props = {
 function describeStudies(registrant: Registrant) {
   const parts = [
     registrant.program,
-    registrant.year && `åk ${registrant.year}`,
+    registrant.year != null &&
+      `programår ${String(registrant.year).padStart(2, "0")}`,
   ];
   return parts.filter(Boolean).join(", ");
 }

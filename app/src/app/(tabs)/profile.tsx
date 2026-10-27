@@ -27,13 +27,13 @@ type FormValues = {
   dietary: string;
 };
 
-const YEAR_REGEX = /^[1-6]$/;
+const YEAR_REGEX = /^\d{2}$/;
 
 function toFormValues(profile: Profile): FormValues {
   return {
     name: profile.name,
     program: profile.program ?? "",
-    year: profile.year?.toString() ?? "",
+    year: profile.year != null ? String(profile.year).padStart(2, "0") : "",
     dietary: profile.dietary ?? "",
   };
 }
@@ -41,7 +41,7 @@ function toFormValues(profile: Profile): FormValues {
 function validate(values: FormValues) {
   if (!values.name.trim()) return "Ange ditt namn";
   if (values.year && !YEAR_REGEX.test(values.year)) {
-    return "Årskurs måste vara en siffra mellan 1 och 6";
+    return "Programår måste vara två siffror, t.ex. 26";
   }
   return null;
 }
@@ -182,12 +182,12 @@ export default function ProfileScreen() {
             returnKeyType="next"
           />
           <FormField
-            label="Årskurs (valfritt)"
+            label="Programår (valfritt)"
             value={values.year}
             onChangeText={setField("year")}
-            placeholder="1-6"
+            placeholder="T.ex. 26"
             keyboardType="number-pad"
-            maxLength={1}
+            maxLength={2}
             returnKeyType="next"
           />
           <FormField

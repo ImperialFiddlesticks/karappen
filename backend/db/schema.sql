@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   name          TEXT NOT NULL,
   program       TEXT,
-  year          INTEGER CHECK (year BETWEEN 1 AND 6),
+  year          INTEGER,
   dietary       TEXT,
   role          TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('member', 'admin')),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -30,3 +30,14 @@ CREATE TABLE IF NOT EXISTS registrations (
 );
 
 ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url TEXT;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'users_program_year_check'
+  ) THEN
+    UPDATE users SET year = NULL WHERE year IS NOT NULL;
+    ALTER TABLE users DROP CONSTRAINT IF EXISTS users_year_check;
+    ALTER TABLE users
+      ADD CONSTRAINT users_program_year_check CHECK (year BETWEEN 0 AND 99);
+  END IF;
+END $$;
