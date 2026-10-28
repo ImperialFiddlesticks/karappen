@@ -40,6 +40,10 @@ import { AdminMenu } from "@/components/AdminMenu";
 const SAVED_MESSAGES: Record<string, string> = {
   created: "Evenemanget har skapats",
   updated: "Ändringarna har sparats",
+  "created-without-image":
+    "Evenemanget har skapats, men bilden kunde inte laddas upp. Försök igen via Ändra.",
+  "updated-without-image":
+    "Ändringarna har sparats, men bilden kunde inte laddas upp. Försök igen via Ändra.",
 };
 
 export default function EventDetailScreen() {
@@ -222,10 +226,6 @@ export default function EventDetailScreen() {
         }}
       />
       <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText themeColor="accent" style={styles.date}>
-          {formatEventDate(event.starts_at)}
-        </ThemedText>
-
         <View
           style={[
             styles.card,
@@ -241,9 +241,12 @@ export default function EventDetailScreen() {
               contentFit="cover"
               transition={200}
               accessible={false}
-              style={styles.image}
+              style={styles.cardImage}
             />
           )}
+          <ThemedText themeColor="accent" style={styles.date}>
+            {formatEventDate(event.starts_at)}
+          </ThemedText>
           <ScreenTitle>{event.title}</ScreenTitle>
           <InfoRow icon="location-outline" text={event.location} />
           <InfoRow icon="people-outline" text={spots} />
@@ -377,6 +380,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
     borderWidth: 2,
+    overflow: "hidden",
   },
   infoRow: {
     flexDirection: "row",
@@ -401,9 +405,10 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 8,
   },
-  image: {
-    width: "100%",
+  cardImage: {
+    marginTop: -16,
+    marginHorizontal: -16,
+    marginBottom: 4,
     aspectRatio: 16 / 9,
-    borderRadius: 10,
   },
 });
