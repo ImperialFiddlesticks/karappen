@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
+  View,
 } from "react-native";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import {
@@ -13,12 +14,16 @@ import {
   fetchEvent,
   updateEvent,
   type StudentEvent,
+  uploadEventImage,
 } from "@/api/events";
 import { Button } from "@/components/Button";
 import { FormField } from "@/components/FormField";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useSession } from "@/context/session";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import { assetUrl } from "@/api/client";
 
 type FormValues = {
   title: string;
@@ -41,6 +46,7 @@ const EMPTY_FORM: FormValues = {
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_REGEX = /^\d{2}:\d{2}$/;
 const POSITIVE_INTEGER_REGEX = /^[1-9]\d*$/;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 function toStartsAt(values: FormValues) {
   return new Date(`${values.date}T${values.time}`);
@@ -102,6 +108,8 @@ export default function EventFormScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingEvent, setIsLoadingEvent] = useState(isEditing);
+  const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (eventId === null) return;
@@ -109,6 +117,7 @@ export default function EventFormScreen() {
       .then((event) => {
         if (event) {
           setValues(toFormValues(event));
+          setExistingImageUrl(event.image_url);
         } else {
           setError("Evenemanget hittades inte.");
         }
@@ -126,6 +135,36 @@ export default function EventFormScreen() {
       setValues((current) => ({ ...current, [field]: text }));
   }
 
+  async function handlePickImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+
+    const picked = result.assets[0];
+
+    if (picked.fileSize && picked.fileSize > MAX_IMAGE_BYTES) {
+      setError("Bilden får vara högst 5 MB");
+      return;
+    }
+    setError(null);
+    setImage(picked);
+  }
+
+  async function tryUploadImage(id: number) {
+    if (!image) return true;
+    try {
+      await uploadEventImage(id, image, token);
+      return true;
+    } catch (err) {
+      console.warn("Bilduppladdningen misslyckades:", err);
+      return false;
+    }
+  }
+
   async function handleSubmit() {
     setError(null);
 
@@ -140,15 +179,23 @@ export default function EventFormScreen() {
       const input = toEventInput(values);
       if (eventId === null) {
         const created = await createEvent(input, token);
+        const imageSaved = await tryUploadImage(created.id);
         router.replace({
           pathname: "/event/[id]",
-          params: { id: String(created.id), saved: "created" },
+          params: {
+            id: String(created.id),
+            saved: imageSaved ? "created" : "created-without-image",
+          },
         });
       } else {
         await updateEvent(eventId, input, token);
+        const imageSaved = await tryUploadImage(eventId);
         router.dismissTo({
           pathname: "/event/[id]",
-          params: { id: String(eventId), saved: "updated" },
+          params: {
+            id: String(eventId),
+            saved: imageSaved ? "updated" : "updated-without-image",
+          },
         });
       }
     } catch (err) {
@@ -231,7 +278,24 @@ export default function EventFormScreen() {
             multiline
             style={styles.multiline}
           />
-
+          <View style={styles.imageSection}>
+            <ThemedText style={styles.imageLabel}>Bild (valfritt)</ThemedText>
+            {(image || existingImageUrl) && (
+              <Image
+                source={{
+                  uri: image ? image.uri : assetUrl(existingImageUrl!),
+                }}
+                style={styles.imagePreview}
+                contentFit="cover"
+                accessibilityLabel="Förhandsvisning av evenemangets bild"
+              />
+            )}
+            <Button
+              title={image || existingImageUrl ? "Byt bild" : "Välj bild"}
+              variant="secondary"
+              onPress={handlePickImage}
+            />
+          </View>
           {error && (
             <ThemedText themeColor="danger" accessibilityRole="alert">
               {error}
@@ -253,4 +317,7 @@ const styles = StyleSheet.create({
   container: { padding: 16, gap: 4, paddingBottom: 48 },
   multiline: { minHeight: 120, textAlignVertical: "top" },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+  imageSection: { gap: 8, marginBottom: 12 },
+  imageLabel: { fontWeight: "700" },
+  imagePreview: { width: "100%", aspectRatio: 16 / 9, borderRadius: 12 },
 });
