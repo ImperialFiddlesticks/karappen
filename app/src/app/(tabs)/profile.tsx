@@ -4,7 +4,7 @@ import { ScreenTitle } from "@/components/ScreenTitle";
 import { useSession } from "@/context/session";
 import { Button } from "@/components/Button";
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, apiFetch } from "@/api/client";
+import { ApiError } from "@/api/client";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,6 +19,8 @@ import {
 } from "@/api/profile";
 import { useHeaderHeight } from "expo-router/build/react-navigation/index.js";
 import { FormField } from "@/components/FormField";
+import { Image } from "expo-image";
+import { programIcon } from "@/constants/programs";
 
 type FormValues = {
   name: string;
@@ -27,13 +29,13 @@ type FormValues = {
   dietary: string;
 };
 
-const YEAR_REGEX = /^[1-6]$/;
+const YEAR_REGEX = /^\d{2}$/;
 
 function toFormValues(profile: Profile): FormValues {
   return {
     name: profile.name,
     program: profile.program ?? "",
-    year: profile.year?.toString() ?? "",
+    year: profile.year != null ? String(profile.year).padStart(2, "0") : "",
     dietary: profile.dietary ?? "",
   };
 }
@@ -41,7 +43,7 @@ function toFormValues(profile: Profile): FormValues {
 function validate(values: FormValues) {
   if (!values.name.trim()) return "Ange ditt namn";
   if (values.year && !YEAR_REGEX.test(values.year)) {
-    return "Årskurs måste vara en siffra mellan 1 och 6";
+    return "Programår måste vara två siffror, t.ex. 26";
   }
   return null;
 }
@@ -148,6 +150,7 @@ export default function ProfileScreen() {
     );
   }
 
+  const icon = programIcon(profile.program);
   return (
     <ThemedView style={styles.screen}>
       <KeyboardAvoidingView
@@ -161,6 +164,14 @@ export default function ProfileScreen() {
         >
           <ScreenTitle>Profil</ScreenTitle>
           <ThemedText themeColor="textSecondary">{profile.email}</ThemedText>
+          {icon && (
+            <Image
+              source={icon}
+              contentFit="contain"
+              accessibilityLabel={`Program: ${profile.program?.trim().toUpperCase()}`}
+              style={styles.programIcon}
+            />
+          )}
           {isAdmin && (
             <ThemedText themeColor="accent" style={styles.badge}>
               Administratör
@@ -182,12 +193,12 @@ export default function ProfileScreen() {
             returnKeyType="next"
           />
           <FormField
-            label="Årskurs (valfritt)"
+            label="Programår (valfritt)"
             value={values.year}
             onChangeText={setField("year")}
-            placeholder="1-6"
+            placeholder="T.ex. 26"
             keyboardType="number-pad"
-            maxLength={1}
+            maxLength={2}
             returnKeyType="next"
           />
           <FormField
@@ -235,4 +246,5 @@ const styles = StyleSheet.create({
   message: { textAlign: "center" },
   badge: { fontWeight: 100, textAlignVertical: "top" },
   multiline: { minHeight: 100, textAlignVertical: "top" },
+  programIcon: { width: 48, height: 48 },
 });

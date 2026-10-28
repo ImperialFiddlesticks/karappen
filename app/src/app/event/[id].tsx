@@ -13,6 +13,7 @@ import {
   View,
   Pressable,
 } from "react-native";
+import { Image } from "expo-image";
 
 import {
   deleteEvent,
@@ -30,7 +31,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/use-theme";
 import { formatEventDate } from "@/utils/formatDate";
 import { eventColor, eventTint } from "@/constants/theme";
-import { ApiError } from "@/api/client";
+import { ApiError, assetUrl } from "@/api/client";
 import { useSession } from "@/context/session";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RegistrantList } from "@/components/RegistrantList";
@@ -238,6 +239,15 @@ export default function EventDetailScreen() {
             },
           ]}
         >
+          {event.image_url && (
+            <Image
+              source={{ uri: assetUrl(event.image_url) }}
+              contentFit="cover"
+              transition={200}
+              accessible={false}
+              style={styles.image}
+            />
+          )}
           <ScreenTitle>{event.title}</ScreenTitle>
           <InfoRow icon="location-outline" text={event.location} />
           <InfoRow icon="people-outline" text={spots} />
@@ -394,5 +404,10 @@ const styles = StyleSheet.create({
   actions: {
     gap: 12,
     marginTop: 8,
+  },
+  image: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    borderRadius: 10,
   },
 });

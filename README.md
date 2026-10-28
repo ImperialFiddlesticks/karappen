@@ -120,7 +120,7 @@ Utloggning sker i appen genom att JWT:n tas bort från SecureStore.
 | Tester      | `node:test` och `supertest` mot en riktig Postgres i CI                                                        |
 | CI/CD       | GitHub Actions: tester → Docker-build → deploy till EC2 via SSH vid push till `main`                           |
 | Hosting     | **AWS EC2** (Ubuntu) med Docker Compose: backend-container och Postgres-container med data i en Docker-volym   |
-| HTTPS       | Läggs till framför backend (reverse proxy med certifikat) innan redovisningen                                  |
+| HTTPS       | nginx som reverse proxy framför backend, Let's Encrypt-certifikat via Certbot (förnyas automatiskt)            |
 | Hemligheter | `POSTGRES_PASSWORD` och `JWT_SECRET` i en `.env`-fil på servern, aldrig i appen eller Git                      |
 
 ### Arbetsfördelning
@@ -169,21 +169,33 @@ Sätt backend-adressen i `app/.env` som `EXPO_PUBLIC_API_URL=...` (den deployade
 
 ## Deployment
 
-Backend körs på en AWS EC2-instans (Ubuntu) med en Elastic IP: **http://51.21.6.174** (hälsokontroll: [/health](http://51.21.6.174/health)). HTTPS läggs till innan redovisningen.
+Backend körs på en AWS EC2-instans (Ubuntu) med en Elastic IP (`51.21.6.174`) och nås via HTTPS: **https://karappen.duckdns.org** (hälsokontroll: [/health](https://karappen.duckdns.org/health)).
 
 ```
 push till main → GitHub Actions: test → docker build → deploy
                                                         │ rsync + ssh
                                                         ▼
                                    EC2: docker compose -f docker-compose.prod.yml up -d --build
-                                        ├── backend  (port 80 → 3000)
+                                        ├── backend  (127.0.0.1:3000, nås bara via nginx)
                                         └── db       (Postgres, data i volymen db-data)
+
+internet → nginx (443 HTTPS, 80 omdirigeras till 443) → backend (127.0.0.1:3000)
 ```
 
 - `deploy`-jobbet kopierar `backend/` och `docker-compose.prod.yml` till `~/karappen` på servern och startar om containrarna. Databasschemat körs vid varje start (`db/migrate.js`).
 - Postgres-data ligger i Docker-volymen `db-data`, så den finns kvar efter omstart och ny deploy.
 - Hemligheterna ligger i `~/karappen/.env` på servern (`POSTGRES_PASSWORD`, `JWT_SECRET`) och finns aldrig i Git.
+- Uppladdade bilder ligger i Docker-volymen `uploads` och serveras av backend under `/uploads`.
 - GitHub-hemligheter: `EC2_HOST` (serverns IP) och `EC2_SSH_KEY` (privat nyckel som bara används av GitHub Actions).
+
+### HTTPS (nginx och Certbot)
+
+nginx och Certbot är installerade direkt på servern (inte i Docker) och ligger därför inte i repot.
+
+- Domänen `karappen.duckdns.org` är en gratis subdomän från [DuckDNS](https://www.duckdns.org) som pekar på Elastic IP:n.
+- nginx-konfigurationen ligger i `/etc/nginx/sites-available/karappen` och skickar alla anrop vidare till `http://127.0.0.1:3000`. Den sätter `client_max_body_size 6M`, eftersom nginx annars bara tillåter 1 MB och bilduppladdningar (max 5 MB) skulle få fel 413.
+- Certifikatet kommer från Let's Encrypt via `certbot --nginx`, som också lade till port 443 och omdirigeringen från HTTP i konfigurationen. Det gäller i 90 dagar och förnyas automatiskt av `certbot.timer`.
+- Security group i AWS släpper in port 22 (SSH), 80 (HTTP, behövs för omdirigering och certifikatförnyelse) och 443 (HTTPS).
 
 Felsökning på servern:
 
@@ -191,6 +203,12 @@ Felsökning på servern:
 cd ~/karappen
 docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs backend
+
+sudo nginx -t                    # kontrollera nginx-konfigurationen
+sudo systemctl reload nginx      # läs in ändrad konfiguration
+sudo tail /var/log/nginx/error.log
+sudo certbot certificates        # visa certifikat och utgångsdatum
+sudo certbot renew --dry-run     # testa förnyelsen
 ```
 
 ## Struktur

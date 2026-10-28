@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, View } from "react-native";
-
+import { Image } from "expo-image";
 import type { StudentEvent } from "@/api/events";
 import { ThemedText } from "./ThemedText";
-import { useTheme } from "@/hooks/use-theme";
 import { formatEventDate } from "@/utils/formatDate";
 import { eventColor, eventTint } from "@/constants/theme";
+import { assetUrl } from "@/api/client";
 
 type Props = {
   readonly event: StudentEvent;
@@ -12,7 +12,6 @@ type Props = {
 };
 
 export function EventCard({ event, onPress }: Props) {
-  const theme = useTheme();
   const spots = event.max_participants
     ? `${event.registered_count}/${event.max_participants} platser`
     : `${event.registered_count} anmälda`;
@@ -35,6 +34,15 @@ export function EventCard({ event, onPress }: Props) {
         pressed && styles.pressed,
       ]}
     >
+      {event.image_url && (
+        <Image
+          source={{ uri: assetUrl(event.image_url) }}
+          contentFit="cover"
+          transition={200}
+          accessible={false}
+          style={styles.image}
+        />
+      )}
       <ThemedText themeColor="accent" style={styles.date}>
         {formatEventDate(event.starts_at)}
       </ThemedText>
@@ -72,5 +80,10 @@ const styles = StyleSheet.create({
   details: {
     flexDirection: "row",
     justifyContent: "space-between",
+  },
+  image: {
+    height: 160,
+    borderRadius: 10,
+    marginBottom: 8,
   },
 });
