@@ -29,7 +29,7 @@ export async function apiFetch<T>(
         ...headers,
       },
     });
-  } catch {
+  } catch (err) {
     throw new ApiError("Kunde inte nå servern. Kontrollera din anslutning.", 0);
   }
 
@@ -38,8 +38,4 @@ export async function apiFetch<T>(
     throw new ApiError(data?.error ?? "Något gick fel", res.status);
   }
   return data as T;
-}
-
-export function toAbsoluteUrl(path: string) {
-  return `${API_URL}${path}`;
 }

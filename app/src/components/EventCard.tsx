@@ -43,13 +43,15 @@ export function EventCard({ event, onPress }: Props) {
           style={styles.image}
         />
       )}
-      <ThemedText themeColor="accent" style={styles.date}>
-        {formatEventDate(event.starts_at)}
-      </ThemedText>
-      <ThemedText style={styles.title}>{event.title}</ThemedText>
-      <View style={styles.details}>
-        <ThemedText themeColor="textSecondary">{event.location}</ThemedText>
-        <ThemedText themeColor="textSecondary">{spots}</ThemedText>
+      <View style={styles.content}>
+        <ThemedText themeColor="accent" style={styles.date}>
+          {formatEventDate(event.starts_at)}
+        </ThemedText>
+        <ThemedText style={styles.title}>{event.title}</ThemedText>
+        <View style={styles.details}>
+          <ThemedText themeColor="textSecondary">{event.location}</ThemedText>
+          <ThemedText themeColor="textSecondary">{spots}</ThemedText>
+        </View>
       </View>
     </Pressable>
   );
@@ -58,10 +60,13 @@ export function EventCard({ event, onPress }: Props) {
 const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
-    padding: 16,
     marginBottom: 12,
-    gap: 4,
     borderWidth: 2,
+    overflow: "hidden",
+  },
+  content: {
+    padding: 16,
+    gap: 4,
   },
   pressed: {
     opacity: 0.7,
@@ -82,8 +87,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   image: {
-    height: 160,
-    borderRadius: 10,
-    marginBottom: 8,
+    width: "100%",
+    aspectRatio: 16 / 9,
   },
 });

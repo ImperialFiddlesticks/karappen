@@ -1,5 +1,6 @@
 import { ApiError, apiFetch } from "./client";
 import type { ImagePickerAsset } from "expo-image-picker";
+import { File } from "expo-file-system";
 
 export type StudentEvent = {
   id: number;
@@ -104,11 +105,7 @@ export function uploadEventImage(
   if (image.file) {
     formData.append("image", image.file);
   } else {
-    formData.append("image", {
-      uri: image.uri,
-      name: image.fileName ?? "bild.jpg",
-      type: image.mimeType ?? "image/jpeg",
-    } as unknown as Blob);
+    formData.append("image", new File(image.uri) as unknown as Blob);
   }
 
   return apiFetch<StudentEvent>(`/events/${id}/image`, {

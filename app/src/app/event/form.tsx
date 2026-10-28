@@ -23,7 +23,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { useSession } from "@/context/session";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { toAbsoluteUrl } from "@/api/client";
+import { assetUrl } from "@/api/client";
 
 type FormValues = {
   title: string;
@@ -145,6 +145,7 @@ export default function EventFormScreen() {
     if (result.canceled) return;
 
     const picked = result.assets[0];
+
     if (picked.fileSize && picked.fileSize > MAX_IMAGE_BYTES) {
       setError("Bilden får vara högst 5 MB");
       return;
@@ -158,7 +159,8 @@ export default function EventFormScreen() {
     try {
       await uploadEventImage(id, image, token);
       return true;
-    } catch {
+    } catch (err) {
+      console.warn("Bilduppladdningen misslyckades:", err);
       return false;
     }
   }
@@ -281,7 +283,7 @@ export default function EventFormScreen() {
             {(image || existingImageUrl) && (
               <Image
                 source={{
-                  uri: image ? image.uri : toAbsoluteUrl(existingImageUrl!),
+                  uri: image ? image.uri : assetUrl(existingImageUrl!),
                 }}
                 style={styles.imagePreview}
                 contentFit="cover"

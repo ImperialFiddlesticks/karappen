@@ -19,7 +19,6 @@ function RootNavigator() {
             headerShown: true,
             title: "Evenemang",
             headerBackTitle: "Tillbaka",
-            headerStyle: { backgroundColor: theme.header },
             headerTintColor: theme.onHeader,
             headerBackground: HeaderBackground,
           }}
@@ -30,7 +29,7 @@ function RootNavigator() {
             headerShown: true,
             title: "Nytt evenemang",
             headerBackTitle: "Tillbaka",
-            headerStyle: { backgroundColor: theme.header },
+
             headerTintColor: theme.onHeader,
             headerBackground: HeaderBackground,
           }}
