@@ -6,6 +6,7 @@ import { Pressable } from "react-native";
 import { useSession } from "@/context/session";
 import { TabBarBackground } from "@/components/TabBarBackground";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ColorSchemeToggle } from "@/components/ColorSchemeToggle";
 
 export default function TabsLayout() {
   const theme = useTheme();
@@ -21,6 +22,7 @@ export default function TabsLayout() {
         headerTitleStyle: { fontWeight: "700" },
         headerTitleAlign: "center",
         headerBackground: HeaderBackground,
+        headerLeft: () => <ColorSchemeToggle />,
         tabBarActiveTintColor: theme.onHeaderActive,
         tabBarInactiveTintColor: theme.onHeaderMuted,
         tabBarStyle: {
