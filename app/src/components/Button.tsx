@@ -47,6 +47,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     alignItems: "center",
+    boxShadow: "0 3px 8px rgba(0, 0, 0, 0.15)",
   },
   text: {
     fontWeight: "700",

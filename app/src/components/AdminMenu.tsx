@@ -42,7 +42,7 @@ export function AdminMenu({ visible, items, onClose }: Props) {
         accessibilityRole="menu"
         style={[
           styles.menu,
-          { top: headerHeight - 4, backgroundColor: theme.background },
+          { top: headerHeight - 4, backgroundColor: theme.card },
         ]}
       >
         {items.map((item) => {

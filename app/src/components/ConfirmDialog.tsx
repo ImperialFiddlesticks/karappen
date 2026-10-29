@@ -39,7 +39,7 @@ export function ConfirmDialog({
           accessibilityLabel="Avbryt"
         />
         <View
-          style={[styles.dialog, { backgroundColor: theme.background }]}
+          style={[styles.dialog, { backgroundColor: theme.card }]}
           accessibilityViewIsModal
         >
           <RainbowStripe />

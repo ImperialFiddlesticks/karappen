@@ -3,8 +3,9 @@ import { Image } from "expo-image";
 import type { StudentEvent } from "@/api/events";
 import { ThemedText } from "./ThemedText";
 import { formatEventDate } from "@/utils/formatDate";
-import { eventColor, eventTint } from "@/constants/theme";
+import { eventColor } from "@/constants/theme";
 import { assetUrl } from "@/api/client";
+import { useTheme } from "@/hooks/use-theme";
 
 type Props = {
   readonly event: StudentEvent;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export function EventCard({ event, onPress }: Props) {
+  const theme = useTheme();
   const spots = event.max_participants
     ? `${event.registered_count}/${event.max_participants} platser`
     : `${event.registered_count} anmälda`;
@@ -28,7 +30,7 @@ export function EventCard({ event, onPress }: Props) {
       style={({ pressed }) => [
         styles.card,
         {
-          backgroundColor: eventTint(event.id),
+          backgroundColor: theme.card,
           borderColor: eventColor(event.id),
         },
         pressed && styles.pressed,
@@ -61,8 +63,9 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     marginBottom: 12,
-    borderWidth: 2,
+    borderWidth: 1,
     overflow: "hidden",
+    boxShadow: "0 3px 8px rgba(0, 0, 0, 0.15)",
   },
   content: {
     padding: 16,

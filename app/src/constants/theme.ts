@@ -20,6 +20,7 @@ export const Colors = {
     text: Palette.navy,
     textSecondary: "#5a5f7a",
     background: "#ffffff",
+    card: "#ffffff",
     backgroundElement: "#f1f2f7",
     backgroundSelected: "#e3e5f0",
     header: Palette.navy,
@@ -38,7 +39,8 @@ export const Colors = {
   dark: {
     text: "#ededed",
     textSecondary: "#a9aec8",
-    background: Palette.navy,
+    background: "#0b0f24",
+    card: Palette.navy,
     backgroundElement: "#1c2347",
     backgroundSelected: "#2a3260",
     header: "#0b0f24",
