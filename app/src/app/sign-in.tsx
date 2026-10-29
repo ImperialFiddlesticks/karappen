@@ -5,25 +5,21 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
 import { FormField } from "@/components/FormField";
-import { RainbowStripe } from "@/components/RainbowStripe";
+
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useSession } from "@/context/session";
 import { DecorativeShapes } from "@/components/DecorativeShapes";
 import { FormCard } from "@/components/FormCard";
-// TILLFÄLLIGT: för att testa mörkt läge på inloggningssidan
-import { ColorSchemeToggle } from "@/components/ColorSchemeToggle";
-import { useTheme } from "@/hooks/use-theme";
 
 export default function SignInScreen() {
   const { signIn } = useSession();
-  const theme = useTheme(); // TILLFÄLLIGT
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -50,10 +46,6 @@ export default function SignInScreen() {
       <DecorativeShapes />
 
       <SafeAreaView style={styles.screen}>
-        {/* TILLFÄLLIGT: ta bort när mörkt läge är färdigstylat */}
-        <View style={[styles.tempToggle, { backgroundColor: theme.header }]}>
-          <ColorSchemeToggle />
-        </View>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}

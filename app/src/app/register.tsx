@@ -10,7 +10,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
 import { FormField } from "@/components/FormField";
-import { RainbowStripe } from "@/components/RainbowStripe";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useSession } from "@/context/session";

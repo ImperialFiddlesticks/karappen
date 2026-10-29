@@ -10,7 +10,7 @@ export function FormCard({ children }: PropsWithChildren) {
       style={[
         styles.card,
         {
-          backgroundColor: `${theme.background}D9`,
+          backgroundColor: `${theme.card}D9`,
           borderColor: theme.secondary,
         },
       ]}

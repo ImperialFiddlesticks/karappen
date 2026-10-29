@@ -30,7 +30,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/use-theme";
 import { formatEventDate } from "@/utils/formatDate";
-import { eventColor, eventTint } from "@/constants/theme";
+import { eventColor } from "@/constants/theme";
 import { ApiError, assetUrl } from "@/api/client";
 import { useSession } from "@/context/session";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -230,7 +230,7 @@ export default function EventDetailScreen() {
           style={[
             styles.card,
             {
-              backgroundColor: eventTint(event.id),
+              backgroundColor: theme.card,
               borderColor: eventColor(event.id),
             },
           ]}
@@ -379,8 +379,9 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 8,
     marginBottom: 8,
-    borderWidth: 2,
+    borderWidth: 1,
     overflow: "hidden",
+    boxShadow: "0 3px 8px rgba(0, 0, 0, 0.15)",
   },
   infoRow: {
     flexDirection: "row",
