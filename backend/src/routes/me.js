@@ -1,10 +1,12 @@
 import { Router } from "express";
 import pool from "../db.js";
+import { deleteImageFile, handleImageUpload } from "../upload.js";
 
 const router = Router();
 
 const MAX_NAME_LENGTH = 100;
 const MAX_TEXT_LENGTH = 200;
+const PROFILE_COLUMNS = "id, email, name, program, year, dietary, role, avatar_url"
 
 function validateProfile(body) {
   const { name, program, year, dietary } = body ?? {};
@@ -35,7 +37,7 @@ function validateProfile(body) {
 
 router.get("/", async (req, res) => {
   const { rows } = await pool.query(
-    "SELECT id, email, name, program, year, dietary, role FROM users WHERE id = $1",
+    `SELECT ${PROFILE_COLUMNS} FROM users WHERE id = $1`,
     [req.user.id],
   );
   if (!rows[0]) {
@@ -55,7 +57,7 @@ router.put("/", async (req, res) => {
     `UPDATE users
         SET name = $1, program = $2, year = $3, dietary = $4
       WHERE id = $5
-      RETURNING id, email, name, program, year, dietary, role`,
+      RETURNING ${PROFILE_COLUMNS}`,
     [
       name.trim(),
       program?.trim() || null,
@@ -68,6 +70,26 @@ router.put("/", async (req, res) => {
     return res.status(404).json({ error: "Användaren hittades inte" });
   }
   res.json(rows[0]);
+});
+
+router.post("/avatar", handleImageUpload, async (req, res) => {
+  const avatarUrl = `/uploads/${req.file.filename}`;
+
+  const { rows } = await pool.query(
+    `UPDATE users SET avatar_url = $1
+      WHERE id = $2
+      RETURNING ${PROFILE_COLUMNS},
+        (SELECT avatar_url FROM users WHERE id = $2) AS old_avatar_url`,
+    [avatarUrl, req.user.id],
+  );
+  if (!rows[0]) {
+    await deleteImageFile(avatarUrl);
+    return res.status(404).json({ error: "Användaren hittades inte" });
+  }
+
+  const { old_avatar_url, ...profile } = rows[0];
+  await deleteImageFile(old_avatar_url);
+  res.json(profile);
 });
 
 router.get("/registrations", async (req, res) => {
