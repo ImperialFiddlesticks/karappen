@@ -5,6 +5,13 @@ import jwt from "jsonwebtoken";
 import request from "supertest";
 import app from "../src/app.js";
 import pool from "../src/db.js";
+import { readdir } from "node:fs/promises";
+import { deleteImageFile, UPLOAD_DIR } from "../src/upload.js";
+
+const TINY_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64",
+);
 
 let adminId;
 let memberId;
@@ -51,6 +58,11 @@ before(async () => {
 });
 
 after(async () => {
+  const { rows: avatarRows } = await pool.query(
+    "SELECT avatar_url FROM users WHERE id IN ($1, $2, $3)",
+    [adminId, memberId, otherMemberId],
+  );
+  await Promise.all(avatarRows.map((row) => deleteImageFile(row.avatar_url)));
   await pool.query("DELETE FROM events WHERE created_by = $1", [adminId]);
   await pool.query("DELETE FROM users WHERE id IN ($1, $2, $3)", [
     adminId,
@@ -166,4 +178,65 @@ test("PUT /me ändrar inte någon annans profil", async () => {
 test("PUT /me ger 401 utan inloggning", async () => {
   const res = await request(app).put("/me").send(validProfile);
   assert.equal(res.status, 401);
+});
+
+function uploadAvatar(api, filename = "bild.png") {
+  return api
+    .post("/me/avatar")
+    .attach("image", TINY_PNG, {
+      filename: filename,
+      contentType: "image/png",
+    });
+}
+
+test("POST /me/avatar laddar upp en profilbild", async () => {
+  const res = await uploadAvatar(memberApi);
+  assert.equal(res.status, 200);
+  assert.match(res.body.avatar_url, /^\/uploads\/.+\.png$/);
+  assert.equal(res.body.password_hash, undefined);
+  assert.equal(res.body.old_avatar_url, undefined);
+
+  const imageRes = await request(app).get(res.body.avatar_url);
+  assert.equal(imageRes.status, 200);
+
+  const getRes = await memberApi.get("/me");
+  assert.equal(getRes.body.avatar_url, res.body.avatar_url);
+});
+
+test("POST /me/avatar ersätter den gamla bilden", async () => {
+  const first = await uploadAvatar(memberApi, "a.png");
+  const second = await uploadAvatar(memberApi, "b.png");
+
+  const files = await readdir(UPLOAD_DIR);
+  assert.ok(!files.includes(first.body.avatar_url.split("/").pop()));
+  assert.ok(files.includes(second.body.avatar_url.split("/").pop()));
+});
+
+test("POST /me/avatar ändrar inte någon annans bild", async () => {
+  await uploadAvatar(memberApi);
+  const { rows } = await pool.query(
+    "SELECT avatar_url FROM users WHERE id = $1",
+    [otherMemberId],
+  );
+  assert.equal(rows[0].avatar_url, null);
+});
+
+test("POST /me/avatar ger 401 utan inloggning", async () => {
+  const res = await uploadAvatar(request(app));
+  assert.equal(res.status, 401);
+});
+
+test("POST /me/avatar ger 400 för fel filtyp", async () => {
+  const res = await memberApi
+    .post("/me/avatar")
+    .attach("image", Buffer.from("inte en bild"), {
+      filename: "virus.exe",
+      contentType: "application/octet-stream",
+    });
+  assert.equal(res.status, 400);
+});
+
+test("POST /me/avatar ger 400 utan bild", async () => {
+  const res = await memberApi.post("/me/avatar");
+  assert.equal(res.status, 400);
 });

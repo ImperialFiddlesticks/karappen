@@ -29,7 +29,7 @@ export async function apiFetch<T>(
         ...headers,
       },
     });
-  } catch (err) {
+  } catch {
     throw new ApiError("Kunde inte nå servern. Kontrollera din anslutning.", 0);
   }
 

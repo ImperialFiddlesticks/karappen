@@ -41,3 +41,5 @@ BEGIN
       ADD CONSTRAINT users_program_year_check CHECK (year BETWEEN 0 AND 99);
   END IF;
 END $$;
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;

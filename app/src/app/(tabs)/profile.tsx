@@ -4,61 +4,77 @@ import { ScreenTitle } from "@/components/ScreenTitle";
 import { useSession } from "@/context/session";
 import { Button } from "@/components/Button";
 import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import { ApiError } from "@/api/client";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Pressable,
   ScrollView,
   StyleSheet,
+  View,
 } from "react-native";
 import {
   fetchProfile,
   Profile,
   ProfileInput,
   updateProfile,
+  uploadAvatar,
 } from "@/api/profile";
 import { useHeaderHeight } from "expo-router/build/react-navigation/index.js";
 import { FormField } from "@/components/FormField";
-import { Image } from "expo-image";
-import { programIcon } from "@/constants/programs";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useTheme } from "@/hooks/use-theme";
+import { ProfileRow } from "@/components/ProfileRow";
+import { YearPicker } from "@/components/YearPicker";
+import * as ImagePicker from "expo-image-picker";
+import { ProfileCard } from "@/components/ProfileCard";
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 type FormValues = {
   name: string;
   program: string;
-  year: string;
+  year: number | null;
   dietary: string;
 };
 
-const YEAR_REGEX = /^\d{2}$/;
+function getProgramYears(date = new Date()) {
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear() % 100;
+
+  const firstYears = month >= 8 ? year : year - 1;
+  const secondYears = firstYears - 1;
+
+  return [secondYears, firstYears];
+}
 
 function toFormValues(profile: Profile): FormValues {
   return {
     name: profile.name,
     program: profile.program ?? "",
-    year: profile.year != null ? String(profile.year).padStart(2, "0") : "",
+    year: profile.year,
     dietary: profile.dietary ?? "",
   };
 }
 
 function validate(values: FormValues) {
   if (!values.name.trim()) return "Ange ditt namn";
-  if (values.year && !YEAR_REGEX.test(values.year)) {
-    return "Programår måste vara två siffror, t.ex. 26";
-  }
   return null;
 }
 
 function toInput(values: FormValues): ProfileInput {
   return {
     name: values.name.trim(),
-    program: values.program.trim() || null,
-    year: values.year ? Number(values.year) : null,
+    program: values.program.trim().toUpperCase() || null,
+    year: values.year,
     dietary: values.dietary.trim() || null,
   };
 }
 
 export default function ProfileScreen() {
   const { token, signOut, isAdmin } = useSession();
+  const theme = useTheme();
   const headerHeight = useHeaderHeight();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [values, setValues] = useState<FormValues | null>(null);
@@ -66,10 +82,12 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
     try {
-      setLoadError(null);
       const result = await fetchProfile(token);
       setProfile(result);
       setValues(toFormValues(result));
@@ -84,9 +102,11 @@ export default function ProfileScreen() {
     }
   }, [token, signOut]);
 
-  useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [loadProfile]),
+  );
 
   useEffect(() => {
     if (!saved) return;
@@ -94,19 +114,73 @@ export default function ProfileScreen() {
     return () => clearTimeout(timer);
   }, [saved]);
 
-  function setField(field: keyof FormValues) {
+  function setField(field: Exclude<keyof FormValues, "year">) {
     return (text: string) => {
-      setSaved(false);
       setValues((current) =>
         current ? { ...current, [field]: text } : current,
       );
     };
   }
 
+  function setYear(year: number | null) {
+    setValues((current) => (current ? { ...current, year } : current));
+  }
+
+  function handleRetry() {
+    setLoadError(null);
+    loadProfile();
+  }
+
+  function handleEdit() {
+    if (!profile) return;
+    setValues(toFormValues(profile));
+    setError(null);
+    setSaved(false);
+    setIsEditing(true);
+  }
+
+  function handleCancel() {
+    if (profile) setValues(toFormValues(profile));
+    setError(null);
+    setIsEditing(false);
+  }
+
+  async function handlePickAvatar() {
+    setAvatarError(null);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+
+    const picked = result.assets[0];
+    if (picked.fileSize && picked.fileSize > MAX_IMAGE_BYTES) {
+      setAvatarError("Bilden får vara högst 5 MB");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const updated = await uploadAvatar(picked, token);
+      setProfile(updated);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        signOut();
+      } else {
+        setAvatarError(
+          err instanceof Error ? err.message : "Kunde inte ladda upp bilden",
+        );
+      }
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  }
+
   async function handleSave() {
     if (!values) return;
     setError(null);
-    setSaved(false);
 
     const validationError = validate(values);
     if (validationError) {
@@ -119,6 +193,7 @@ export default function ProfileScreen() {
       const updated = await updateProfile(toInput(values), token);
       setProfile(updated);
       setValues(toFormValues(updated));
+      setIsEditing(false);
       setSaved(true);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -137,7 +212,7 @@ export default function ProfileScreen() {
         <ThemedText accessibilityRole="alert" style={styles.message}>
           {loadError}
         </ThemedText>
-        <Button title="Försök igen" onPress={loadProfile} />
+        <Button title="Försök igen" onPress={handleRetry} />
       </ThemedView>
     );
   }
@@ -150,7 +225,6 @@ export default function ProfileScreen() {
     );
   }
 
-  const icon = programIcon(profile.program);
   return (
     <ThemedView style={styles.screen}>
       <KeyboardAvoidingView
@@ -162,71 +236,112 @@ export default function ProfileScreen() {
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
         >
-          <ScreenTitle>Profil</ScreenTitle>
-          <ThemedText themeColor="textSecondary">{profile.email}</ThemedText>
-          {icon && (
-            <Image
-              source={icon}
-              contentFit="contain"
-              accessibilityLabel={`Program: ${profile.program?.trim().toUpperCase()}`}
-              style={styles.programIcon}
-            />
-          )}
-          {isAdmin && (
-            <ThemedText themeColor="accent" style={styles.badge}>
-              Administratör
-            </ThemedText>
-          )}
-          <FormField
-            label="Namn"
-            value={values.name}
-            onChangeText={setField("name")}
-            autoComplete="name"
-            autoCapitalize="words"
-            returnKeyType="next"
-          />
-          <FormField
-            label="Program (valfritt)"
-            value={values.program}
-            onChangeText={setField("program")}
-            placeholder="T.ex FMW"
-            returnKeyType="next"
-          />
-          <FormField
-            label="Programår (valfritt)"
-            value={values.year}
-            onChangeText={setField("year")}
-            placeholder="T.ex. 26"
-            keyboardType="number-pad"
-            maxLength={2}
-            returnKeyType="next"
-          />
-          <FormField
-            label="Specialkost (valfritt)"
-            value={values.dietary}
-            onChangeText={setField("dietary")}
-            placeholder="T.ex vegetarisk, glutenfri"
-            multiline
-            style={styles.multiline}
-          />
+          <View style={styles.header}>
+            <ScreenTitle>
+              {isEditing ? "Redigera profil" : "Profil"}
+            </ScreenTitle>
+            {!isEditing && (
+              <Pressable
+                onPress={handleEdit}
+                accessibilityRole="button"
+                accessibilityLabel="Redigera profil"
+                hitSlop={8}
+                style={({ pressed }) => [
+                  styles.editButton,
+                  { backgroundColor: theme.backgroundElement },
+                  pressed && styles.dimmed,
+                ]}
+              >
+                <Ionicons name="pencil" size={20} color={theme.text} />
+              </Pressable>
+            )}
+          </View>
 
-          {error && (
-            <ThemedText themeColor="danger" accessibilityRole="alert">
-              {error}
-            </ThemedText>
-          )}
-          {saved && (
-            <ThemedText themeColor="success" accessibilityRole="alert">
-              Profilen är sparad
-            </ThemedText>
-          )}
+          {isEditing ? (
+            <>
+              <FormField
+                label="Namn"
+                value={values.name}
+                onChangeText={setField("name")}
+                autoComplete="name"
+                autoCapitalize="words"
+                returnKeyType="next"
+              />
+              <FormField
+                label="Program (valfritt)"
+                value={values.program}
+                onChangeText={setField("program")}
+                placeholder="T.ex FMW"
+                autoCapitalize="characters"
+                returnKeyType="next"
+              />
+              <YearPicker
+                options={getProgramYears()}
+                value={values.year}
+                onChange={setYear}
+              />
+              <FormField
+                label="Specialkost (valfritt)"
+                value={values.dietary}
+                onChangeText={setField("dietary")}
+                placeholder="T.ex vegetarisk, glutenfri"
+                autoCapitalize="sentences"
+                multiline
+                style={styles.multiline}
+              />
 
-          <Button
-            title={isSubmitting ? "Sparar..." : "Spara profil"}
-            onPress={handleSave}
-            disabled={isSubmitting}
-          />
-          <Button title="Logga ut" variant="secondary" onPress={signOut} />
+              {error && (
+                <ThemedText themeColor="danger" accessibilityRole="alert">
+                  {error}
+                </ThemedText>
+              )}
+
+              <Button
+                title={isSubmitting ? "Sparar..." : "Spara profil"}
+                onPress={handleSave}
+                disabled={isSubmitting}
+              />
+              <Button
+                title="Avbryt"
+                variant="secondary"
+                onPress={handleCancel}
+                disabled={isSubmitting}
+              />
+            </>
+          ) : (
+            <>
+              <ProfileCard
+                profile={profile}
+                isAdmin={isAdmin}
+                onPressAvatar={handlePickAvatar}
+                isUploadingAvatar={isUploadingAvatar}
+              />
+
+              {avatarError && (
+                <ThemedText themeColor="danger" accessibilityRole="alert">
+                  {avatarError}
+                </ThemedText>
+              )}
+
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.backgroundElement },
+                ]}
+              >
+                <ProfileRow label="E-post" value={profile.email} />
+                <ProfileRow label="Specialkost" value={profile.dietary} />
+              </View>
+
+              {saved && (
+                <ThemedText themeColor="success" accessibilityRole="alert">
+                  Profilen är sparad
+                </ThemedText>
+              )}
+
+              <Button title="Logga ut" variant="secondary" onPress={signOut} />
+            </>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
@@ -244,7 +359,19 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   message: { textAlign: "center" },
-  badge: { fontWeight: 100, textAlignVertical: "top" },
   multiline: { minHeight: 100, textAlignVertical: "top" },
-  programIcon: { width: 48, height: 48 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dimmed: { opacity: 0.6 },
+  card: { borderRadius: 16, padding: 16, gap: 12, marginBottom: 8 },
 });
